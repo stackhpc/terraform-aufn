@@ -4,7 +4,7 @@ resource "null_resource" "minikube" {
 
   connection {
     user        = "root"
-    private_key = "${tls_private_key.lab.private_key_pem}"
+    private_key = "${tls_private_key.default.private_key_pem}"
     agent       = false
     timeout     = "30s"
     host        = "${element(packet_device.lab.*.access_public_ipv4,count.index)}"
