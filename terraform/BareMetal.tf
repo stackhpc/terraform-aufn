@@ -1,11 +1,11 @@
-resource "packet_ssh_key" "lab" {
-  name       = "lab"
-  public_key = "${tls_private_key.lab.public_key_openssh}"
+resource "packet_ssh_key" "default" {
+  name       = "default"
+  public_key = "${tls_private_key.default.public_key_openssh}"
 }
 
 resource "packet_device" "lab" {
 
-  depends_on       = ["packet_ssh_key.lab"]
+  depends_on       = ["packet_ssh_key.default"]
 
   count            = "${var.lab_count}"
   hostname         = "${format("lab%02d", count.index)}"
@@ -14,7 +14,7 @@ resource "packet_device" "lab" {
 
   connection {
     user        = "root"
-    private_key = "${tls_private_key.lab.private_key_pem}"
+    private_key = "${tls_private_key.default.private_key_pem}"
     agent       = false
     timeout     = "30s"
   }
