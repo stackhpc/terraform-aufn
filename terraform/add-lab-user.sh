@@ -14,16 +14,21 @@ cat <<EOF > /etc/motd
 
 Welcome to the Minikube Lab!
 
-For Kata, startup Minikube as follows:
+To setup the lab, run the following scripts:
 
-sudo minikube start \
- --vm-driver kvm2 \
- --cpus 4 \
- --memory 6144 \
- --feature-gates=RuntimeClass=true \
- --network-plugin=cni \
+Startup Minikube as follows for use with running Kata:
+
+minikube start \\
+ --vm-driver kvm2 \\
+ --cpus 4 \\
+ --memory 6144 \\
+ --feature-gates=RuntimeClass=true \\
+ --network-plugin=cni \\
  --enable-default-cni \
- --container-runtime=cri-o \
+ --container-runtime=cri-o \\
  --bootstrapper=kubeadm
+
+To see this directions again:
+cat /etc/motd
 
 EOF

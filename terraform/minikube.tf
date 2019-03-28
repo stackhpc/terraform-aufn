@@ -11,6 +11,12 @@ resource "null_resource" "minikube" {
   }
 
   provisioner "file" {
+    source      = "add-libvirt-group.sh"
+    destination = "add-libvirt-group.sh"
+  }
+
+
+  provisioner "file" {
     source      = "install-kubectl.sh"
     destination = "install-kubectl.sh"
   }
@@ -21,15 +27,22 @@ resource "null_resource" "minikube" {
   }
 
   provisioner "file" {
+    source      = "install-kvm-driver.sh"
+    destination = "install-kvm-driver.sh"
+  }
+
+  provisioner "file" {
     source      = "install-minikube.sh"
     destination = "install-minikube.sh"
   }
 
   provisioner "remote-exec" {
     inline = [
+      "bash add-libvirt-group.sh > add-libvirt-group.sh",
       "bash install-kubectl.sh > install-kubectl.out",
+      "bash install-kvm-driver.sh > install-kvm-driver.out",
+      "bash install-minikube.sh > install-minikube.out",
       "bash install-kvm.sh > install-kvm.out",
-#      "bash install-minikube.sh > install-minikube.out",
     ]
   }
 }
