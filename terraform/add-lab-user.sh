@@ -7,7 +7,7 @@ Match user lab
   PasswordAuthentication yes
 EOF
 
-useradd -G sudo -p 42ZTHaRqaaYvI lab
+useradd -m -G sudo -p 42ZTHaRqaaYvI -s /bin/bash lab
 service sshd restart
 
 cat <<EOF > /etc/motd
