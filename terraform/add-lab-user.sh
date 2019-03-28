@@ -18,7 +18,7 @@ To setup the lab, run the following scripts:
 
 Startup Minikube as follows for use with running Kata:
 
-sudo minikube start \\
+minikube start \\
  --vm-driver kvm2 \\
  --cpus 4 \\
  --memory 6144 \\
