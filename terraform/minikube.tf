@@ -8,7 +8,6 @@ resource "null_resource" "minikube" {
     agent       = false
     timeout     = "30s"
     host        = "${element(packet_device.lab.*.access_public_ipv4,count.index)}"
-
   }
 
   provisioner "file" {
@@ -17,8 +16,8 @@ resource "null_resource" "minikube" {
   }
 
   provisioner "file" {
-    source      = "install-virtualbox.sh"
-    destination = "install-virtualbox.sh"
+    source      = "install-kvm.sh"
+    destination = "install-kvm.sh"
   }
 
   provisioner "file" {
@@ -29,8 +28,8 @@ resource "null_resource" "minikube" {
   provisioner "remote-exec" {
     inline = [
       "bash install-kubectl.sh > install-kubectl.out",
-      "bash install-virtualbox.sh > install-virtualbox.out",
-      "bash install-minikube.sh > install-minikube.out",
+      "bash install-kvm.sh > install-kvm.out",
+#      "bash install-minikube.sh > install-minikube.out",
     ]
   }
 }
