@@ -1,25 +1,17 @@
-# Minikube Lab Environments
+# Kata on Packet
 
-Need to run a workshop using Minikube? This repo will spin up all the bare metal resources you need with minikube installed and ready to go.
+Wouldn't it be nice if you could use `kata` under `minikube` to get an easy out of the box experience to try out Kata?
 
-# KVM versus VirtualBox
+Here is how to use a Packet bare metal host to run `kvm` via `minikube`, and then utilise nested virtualisation
+to get `kata` VMs to run under `minikube`.
 
-Currently, the nodes are setup to use KVM but VirtualBox support can be enabled. KVM is currently being used in order to support Kata containers.
+# Software Components
 
-# Running Kata Containers in Minikube
-
-[minikube](https://kubernetes.io/docs/setup/minikube/) is an easy way to try out a kubernetes (k8s) cluster locally.
-It utilises running a single node k8s stack in a local VM.
+[minikube](https://kubernetes.io/docs/setup/minikube/) provides the virtualization to run a single node Kubernetes stack in a local VM.
 
 [Kata Containers](https://github.com/kata-containers) is an OCI compatible container runtime that runs container workloads inside VMs.
 
-Wouldn't it be nice if you could use `kata` under `minikube` to get an easy out of the box experience to try out Kata?
-Well, turns out with a little bit of config and setup that is already supported, you can!
-
-Here is how I got this running, using `kvm` on my local machine to get `minikube` up, and then utilise nested virtualisation
-to get `kata` VMs to run under `minikube`.
-
-## prereqs
+## Prerequisites
 
 You need to have a machine that can support nested virtualisation. I used an `i7` laptop that had virtualisation enabled in the BIOS
 and was running Fedora 29.
