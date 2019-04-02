@@ -24,7 +24,7 @@ minikube start \\
  --memory 6144 \\
  --feature-gates=RuntimeClass=true \\
  --network-plugin=cni \\
- --enable-default-cni \
+ --enable-default-cni \\
  --container-runtime=cri-o \\
  --bootstrapper=kubeadm
 
