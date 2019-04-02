@@ -1,5 +1,5 @@
 
-# supress warning
+# suppress warning
 touch /var/lib/cloud/instance/warnings/.skip
 
 cat <<EOF > /etc/ssh/sshd_config
