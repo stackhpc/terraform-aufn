@@ -2,7 +2,7 @@
 # suppress warning
 touch /var/lib/cloud/instance/warnings/.skip
 
-cat <<EOF > /etc/ssh/sshd_config
+cat <<EOF >> /etc/ssh/sshd_config
 Match user lab
   PasswordAuthentication yes
 EOF
