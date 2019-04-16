@@ -23,14 +23,15 @@ cd ~/kayobe
 ./dev/seed-hypervisor-deploy.sh
 
 # Deploy a seed VM.
-# FIXME: Will fail first time due to missing bifrost image.
+# NOTE: This will work the first time because the packet configuration uses a
+# custom docker registry.
 ./dev/seed-deploy.sh
 
 # Pull, retag images, then push to our local registry.
-./config/src/kayobe-config/pull-retag-push-images.sh
+# ./config/src/kayobe-config/pull-retag-push-images.sh
 
 # Deploy a seed VM. Should work this time.
-./dev/seed-deploy.sh
+# ./dev/seed-deploy.sh
 
 # FIXME: There is an issue with Bifrost which does not restrict the version
 # of proliantutils it installs.
