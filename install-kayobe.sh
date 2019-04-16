@@ -1,3 +1,6 @@
+# Exit on error
+set -e
+
 # Reset SECONDS
 SECONDS=0
 
