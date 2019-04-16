@@ -1,5 +1,4 @@
-
-resource "null_resource" "add-lab-user" {
+resource "null_resource" "user" {
 
   count         = "${var.lab_count}"
 
@@ -12,6 +11,6 @@ resource "null_resource" "add-lab-user" {
   }
 
   provisioner "remote-exec" {
-    script = "add-lab-user.sh"
+    script = "setup-user.sh"
   }
 }

@@ -26,7 +26,7 @@ variable "lab_count" {
 
 variable "operating_system" {
   description = "Operating System to install across nodes"
-  default = "ubuntu_18_04"
+  default = "centos_7"
 }
 
 variable "terraform_username" {

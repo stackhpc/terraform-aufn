@@ -23,13 +23,8 @@ resource "packet_device" "lab" {
   billing_cycle = "hourly"
 
   provisioner "file" {
-    source      = "install-kubectl.sh"
-    destination = "install-kubectl.sh"
-  }
-
-  provisioner "file" {
-    source      = "install-virtualbox.sh"
-    destination = "install-virtualbox.sh"
+    source      = "install-kayobe.sh"
+    destination = "install-kayobe.sh"
   }
 
   provisioner "remote-exec" {
