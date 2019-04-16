@@ -16,9 +16,12 @@ cat <<EOF > /etc/motd
 
 Welcome to the Kayobe Lab!
 
-Immediately change the default password and change to root user.
+Immediately change the default password.
 
     passwd
+
+Optionally, attach to a screen session in case the connection drops:
+
     screen -drR
 
 To configure Kayobe, run:

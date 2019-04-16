@@ -37,9 +37,10 @@ ssh stack@192.168.33.5 sudo docker exec bifrost_deploy systemctl restart ironic-
 # Clone the Tenks repository.
 git clone https://git.openstack.org/openstack/tenks.git
 
-# Open a shell session and wait 
-/bin/bash
-
 # Duration
 duration=$SECONDS
 echo "$(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."
+
+# Open a shell session and wait 
+/bin/bash
+
