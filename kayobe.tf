@@ -27,7 +27,7 @@ resource "null_resource" "kayobe" {
 
   provisioner "remote-exec" {
     inline = [
-      "bash install-wrapper.sh > install.out",
+      "bash install-wrapper.sh ${packet_device.registry.access_public_ipv4} > install.out",
     ]
   }
 }

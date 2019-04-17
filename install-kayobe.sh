@@ -1,5 +1,11 @@
+#!/bin/bash
+
 # Exit on error
 set -e
+
+# Registry IP
+registry_ip=$1
+echo "Given docker registry IP: $registry_ip"
 
 # Reset SECONDS
 SECONDS=0
@@ -11,7 +17,13 @@ cd kayobe
 # Clone this Kayobe configuration.
 mkdir -p config/src
 cd config/src/
-git clone https://github.com/stackhpc/a-universe-from-nothing.git -b packet kayobe-config
+git clone https://github.com/stackhpc/a-universe-from-nothing.git kayobe-config
+
+# Set default registry name to the one we just created
+sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip'/' kayobe-config/etc/kayobe/docker.yml
+
+# Default interface is called bond0 on packet
+sed -i.bak 's/eth0/bond0/g' kayobe-config/configure-local-networking.sh
 
 ./kayobe-config/configure-local-networking.sh
 
