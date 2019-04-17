@@ -4,8 +4,13 @@ set -e
 # Reset SECONDS
 SECONDS=0
 
+# FIXME: IP on public1 subnet disappears for braio interface during the course
+# of install-kayobe.sh script. Rerun the configuration script to re-add it.
+cd ~/kayobe/config/src/
+./kayobe-config/configure-local-networking.sh
+
 # Change to kayobe directory
-cd kayobe
+cd ~/kayobe
 
 # Create some 'bare metal' VMs for the controller and compute node.
 # NOTE: Make sure to use ./tenks, since just ‘tenks’ will install via PyPI.
