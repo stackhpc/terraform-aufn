@@ -30,6 +30,13 @@ Next up is the `terraform` bit assuming it is already installed:
     terraform plan
     terraform apply -auto-approve
 
+To reprovision a lab machine:
+
+    terraform taint packet_device.lab.#
+    terraform apply
+
+where `#` is the lab index which can be obtained from the web UI.
+
 # Instructions for lab users
 
 ## SSH config
