@@ -13,15 +13,22 @@ OpenStack to bare metal.
 After cloning this repo,
 
     cd kata-on-packet    
-    echo terraform_username=\"$LOGNAME\" > terraform.tfvars
+    
+    echo terraform_username=\"$LOGNAME\" >> terraform.tfvars
     echo packet_auth_token=\"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456\" >> terraform.tfvars
     echo packet_project_id=\"12345678-90AB-CDEF-GHIJ-KLMNOPQR\" >> terraform.tfvars
     echo lab_count=50 >> terraform.tfvars
 
 Note that the `packet_auth_token` needs to be the user auth token, not the
-project auth token, otherwise you will hit strange errors.
+project auth token, otherwise you will hit strange errors. This can be
+obtained by clicking the user icon on the top right hand corner on
+https://app.packet.net and choose API Keys in the menu.
 
-Set the number of lab machines required under 
+Next up is the `terraform` bit assuming it is already installed:
+
+    terraform init
+    terraform plan
+    terraform apply -auto-approve
 
 # Instructions for lab users
 
