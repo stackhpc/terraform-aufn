@@ -21,7 +21,7 @@ variable "plan" {
 
 variable "lab_count" {
   description = "Number of labs"
-  default = "2"
+  default = "1"
 }
 
 variable "operating_system" {

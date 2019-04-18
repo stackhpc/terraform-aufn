@@ -28,7 +28,6 @@ resource "packet_device" "registry" {
 
   provisioner "remote-exec" {
     inline = [
-      "ssh-keygen -A", 
       "bash pull-retag-push-images.sh > pull-retag-push-images.out",
     ]
   }
@@ -49,13 +48,33 @@ resource "packet_device" "lab" {
     agent       = false
     timeout     = "30s"
   }
+
   facilities    = ["${var.packet_facility}"]
   project_id    = "${var.packet_project_id}"
   billing_cycle = "hourly"
 
   provisioner "remote-exec" {
-    inline = [
-      "ssh-keygen -A", 
+    script = "setup-user.sh"
+  }
+
+  provisioner "file" {
+    source      = "install-wrapper.sh"
+    destination = "install-wrapper.sh"
+  }
+
+  provisioner "file" {
+    source      = "install-kayobe.sh"
+    destination = "install-kayobe.sh"
+  }
+
+  provisioner "file" {
+    source      = "configure-kayobe.sh"
+    destination = "configure-kayobe.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline      = [
+      "bash install-wrapper.sh ${packet_device.registry.access_public_ipv4} > install.out",
     ]
   }
 }
