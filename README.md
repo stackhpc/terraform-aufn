@@ -39,19 +39,11 @@ where `#` is the lab index which can be obtained from the web UI.
 
 # Instructions for lab users
 
-## SSH config
+## Logging in
 
-Ensure that the lab users have the following entry in their `~/.ssh/config`:
+SSH in to your lab instance by running and entering the provided password:
 
-    Host lab
-      User root
-      HostName 139.178.64.215
-      IdentityFile ~/.ssh/id_rsa
-      PreferredAuthentications password
-
-Then login to the node by running and entering the provided password:
-
-    ssh lab
+    ssh lab@<lab-ip-address> -o PreferredAuthentications=password
 
 It is recommeded that you run `passwd` immediately to change the default password.
 

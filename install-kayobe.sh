@@ -56,7 +56,3 @@ git clone https://git.openstack.org/openstack/tenks.git
 # Duration
 duration=$SECONDS
 echo "$(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."
-
-# Open a shell session and wait 
-/bin/bash
-

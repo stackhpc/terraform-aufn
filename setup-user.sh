@@ -1,14 +1,21 @@
 #!/bin/bash
 
+useradd -m -G wheel -p 42ZTHaRqaaYvI -s /bin/bash lab
+
 cat <<EOF >> /etc/ssh/sshd_config
 
-Match user root
+Match user lab
   PasswordAuthentication yes
 
 EOF
 
-usermod -p 42ZTHaRqaaYvI root
 service sshd restart
+
+cat <<EOF >> /etc/sudoers
+
+%wheel  ALL=(ALL)       NOPASSWD: ALL
+
+EOF
 
 cat <<EOF > /etc/motd
 

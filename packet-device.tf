@@ -58,23 +58,19 @@ resource "packet_device" "lab" {
   }
 
   provisioner "file" {
-    source      = "install-wrapper.sh"
-    destination = "install-wrapper.sh"
-  }
-
-  provisioner "file" {
     source      = "install-kayobe.sh"
-    destination = "install-kayobe.sh"
+    destination = "/home/lab/install-kayobe.sh"
   }
 
   provisioner "file" {
     source      = "configure-kayobe.sh"
-    destination = "configure-kayobe.sh"
+    destination = "/home/lab/configure-kayobe.sh"
   }
 
   provisioner "remote-exec" {
     inline      = [
-      "bash install-wrapper.sh ${packet_device.registry.access_public_ipv4} > install.out",
+      "yum install -y screen git",
+      "su -c 'bash install-kayobe.sh ${packet_device.registry.access_public_ipv4} > install-kayobe.out' - lab",
     ]
   }
 }
