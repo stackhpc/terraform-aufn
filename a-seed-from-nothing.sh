@@ -22,9 +22,7 @@ git clone https://github.com/stackhpc/a-universe-from-nothing.git kayobe-config
 # Set default registry name to the one we just created
 sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-config/etc/kayobe/docker.yml
 
-# Default interface is called bond0 on packet
-sed -i.bak 's/eth0/bond0/g' kayobe-config/configure-local-networking.sh
-
+# Configure local networking
 ./kayobe-config/configure-local-networking.sh
 
 # Install kayobe.

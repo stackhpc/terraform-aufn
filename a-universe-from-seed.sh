@@ -7,7 +7,7 @@ set -e
 SECONDS=0
 
 # FIXME: IP on public1 subnet disappears for braio interface during the course
-# of install-kayobe.sh script. Rerun the configuration script to re-add it.
+# of a-seed-from-nothing.sh script. Rerun the configuration script to re-add it.
 cd ~/kayobe/config/src/
 ./kayobe-config/configure-local-networking.sh
 
