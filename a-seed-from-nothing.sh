@@ -3,12 +3,12 @@
 # Exit on error
 set -e
 
-# Registry IP
-registry_ip=$1
-echo "Given docker registry IP: $registry_ip"
-
 # Reset SECONDS
 SECONDS=0
+
+# Registry IP
+registry_ip=$1
+echo "[INFO] Given docker registry IP: $registry_ip"
 
 # Clone Kayobe.
 git clone https://git.openstack.org/openstack/kayobe.git -b stable/rocky
@@ -53,4 +53,4 @@ git clone https://git.openstack.org/openstack/tenks.git
 
 # Duration
 duration=$SECONDS
-echo "$(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."
+echo "[INFO] $(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."

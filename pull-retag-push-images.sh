@@ -2,6 +2,9 @@
 
 set -e
 
+# Reset SECONDS
+SECONDS=0
+
 # Install and start docker
 yum install docker -y
 systemctl enable docker
@@ -54,3 +57,7 @@ for image in $images; do
     docker push localhost:4000/$image:$tag
     docker image remove docker.io/$image:$tag
 done
+
+# Duration
+duration=$SECONDS
+echo "[INFO] $(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."

@@ -59,9 +59,12 @@ openstack floating ip create public1
 fip=$(openstack floating ip list -f value -c 'Floating IP Address' --status DOWN | head -n 1)
 openstack server add floating ip demo1 $fip
 
+# Wait for instance to be ready
+sleep 30
+
 # Check SSH access to the VM.
 ssh cirros@$fip
 
 # Duration
 duration=$SECONDS
-echo "$(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."
+echo "[INFO] $(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."
