@@ -49,6 +49,11 @@ kolla/centos-binary-heat-api
 kolla/centos-binary-heat-api-cfn
 kolla/centos-binary-heat-engine
 kolla/centos-binary-horizon
+kolla/centos-binary-kibana
+kolla/centos-binary-elasticsearch
+kolla/centos-binary-magnum-base
+kolla/centos-binary-magnum-api
+kolla/centos-binary-magnum-conductor
 kolla/centos-source-bifrost-deploy"
 
 for image in $images; do
