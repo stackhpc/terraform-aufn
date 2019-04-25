@@ -58,19 +58,19 @@ resource "packet_device" "lab" {
   }
 
   provisioner "file" {
-    source      = "install-kayobe.sh"
-    destination = "/home/lab/install-kayobe.sh"
+    source      = "a-seed-from-nothing.sh"
+    destination = "/home/lab/a-seed-from-nothing.sh"
   }
 
   provisioner "file" {
-    source      = "configure-kayobe.sh"
-    destination = "/home/lab/configure-kayobe.sh"
+    source      = "a-universe-from-seed.sh"
+    destination = "/home/lab/a-universe-from-seed.sh"
   }
 
   provisioner "remote-exec" {
     inline      = [
       "yum install -y screen git",
-      "su -c 'bash install-kayobe.sh ${packet_device.registry.access_public_ipv4} > install-kayobe.out' - lab",
+      "su -c 'bash a-seed-from-nothing.sh ${packet_device.registry.access_public_ipv4} > a-seed-from-nothing.out' - lab",
     ]
   }
 }

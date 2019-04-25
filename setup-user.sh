@@ -29,9 +29,9 @@ Optionally, attach to a screen session in case the connection drops:
 
     screen -drR
 
-To configure Kayobe, run:
+To deploy the control plane using the predeployed seed, run:
 
-    bash configure-kayobe.sh
+    bash a-universe-from-seed.sh
 
 To see this directions again:
 
