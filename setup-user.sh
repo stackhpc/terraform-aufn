@@ -29,12 +29,16 @@ Optionally, attach to a screen session in case the connection drops:
 
     screen -drR
 
-To deploy the control plane using the predeployed seed, run:
+To view the script that was used to deploy the seed in this instance:
 
-    bash a-universe-from-seed.sh
+    < a-seed-from-nothing.sh
+
+To view the instructions for deploying the control plane:
+
+    < a-universe-from-seed.sh
 
 To see this directions again:
 
-    cat /etc/motd
+    < /etc/motd
 
 EOF
