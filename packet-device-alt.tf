@@ -2,7 +2,7 @@ resource "packet_device" "registry_alt" {
   depends_on       = ["packet_ssh_key.default"]
 
   count            = "1"
-  hostname         = "registry"
+  hostname         = "${var.deploy_prefix}-registry-alt"
   operating_system = "${var.operating_system}"
   plan             = "${var.plan}"
 
@@ -33,7 +33,7 @@ resource "packet_device" "lab_alt" {
   depends_on       = ["packet_ssh_key.default"]
 
   count            = "${var.lab_count_alt}"
-  hostname         = "${format("lab%02d", count.index)}"
+  hostname         = "${format("%s-lab-alt-%02d", var.deploy_prefix, count.index)}"
   operating_system = "${var.operating_system}"
   plan             = "${var.plan}"
 

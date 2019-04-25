@@ -17,6 +17,7 @@ After cloning this repo,
     echo terraform_username=\"$LOGNAME\" >> terraform.tfvars
     echo packet_auth_token=\"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456\" >> terraform.tfvars
     echo packet_project_id=\"12345678-90AB-CDEF-GHIJ-KLMNOPQR\" >> terraform.tfvars
+    echo deploy_prefix=kayobe >> terraform.tfvars
     echo packet_facility=\"ewr1\" >> terraform.tfvars
     echo lab_count=25 >> terraform.tfvars
     echo packet_facility_alt=\"nrt1\" >> terraform.tfvars
