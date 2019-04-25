@@ -59,22 +59,23 @@ Look for **vmx** or **svm** coloured red in the output.
 
 Ensure that the initialsation steps are complete by looking at the log:
 
-    tail -f screenlog.0
+    tail -f a-seed-from-nothing.out
 
 When complete, it should report an elapsed time as follows:
 
-    22 minutes and 3 seconds elapsed.
+    [INFO] 22 minutes and 3 seconds elapsed.
 
-## Inspect the docker container and images inside your seed VM:
+## Inspect the bifrost container inside your seed VM:
 
     ssh stack@192.138.33.5
+    docker ps
+    exit
 
 ## Configuring bare metal cloud using Kayobe
 
-Look at the steps involved in deploying Kayobe inside `configure-kayobe.sh`. To
-run the script:
+Look at the steps involved in deploying Kayobe control plane:
 
-    bash configure-kayobe.sh
+    < a-universe-from-seed.sh
 
 # Wrapping up
 
