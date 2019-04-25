@@ -14,6 +14,11 @@ variable "packet_facility" {
   default = "ewr1"
 }
 
+variable "packet_facility_alt" {
+  description = "Packet facility. Default: nrt1"
+  default = "nrt1"
+}
+
 variable "plan" {
   description = "Instance type"
   default = "c1.small.x86"
@@ -21,7 +26,12 @@ variable "plan" {
 
 variable "lab_count" {
   description = "Number of labs"
-  default = "1"
+  default = "2"
+}
+
+variable "lab_count_alt" {
+  description = "Number of labs"
+  default = "2"
 }
 
 variable "operating_system" {
