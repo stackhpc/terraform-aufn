@@ -51,6 +51,10 @@ kolla/centos-binary-heat-engine
 kolla/centos-binary-horizon
 kolla/centos-binary-kibana
 kolla/centos-binary-elasticsearch
+kolla/centos-binary-barbican-base
+kolla/centos-binary-barbican-api
+kolla/centos-binary-barbican-worker
+kolla/centos-binary-barbican-keystone-listener
 kolla/centos-binary-magnum-base
 kolla/centos-binary-magnum-api
 kolla/centos-binary-magnum-conductor
