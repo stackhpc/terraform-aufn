@@ -32,14 +32,18 @@ Next up is the `terraform` bit assuming it is already installed:
 
     terraform init
     terraform plan
-    terraform apply -auto-approve
+    terraform apply -auto-approve -parallelism=52
 
 To reprovision a lab machine:
 
     terraform taint packet_device.lab.#
-    terraform apply
+    terraform apply -auto-approve
 
 where `#` is the lab index which can be obtained from the web UI.
+
+To destroy the cluster:
+
+    terraform destroy
 
 # Instructions for lab users
 
