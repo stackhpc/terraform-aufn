@@ -26,12 +26,12 @@ variable "plan" {
 
 variable "lab_count" {
   description = "Number of labs"
-  default = "2"
+  default = "25"
 }
 
 variable "lab_count_alt" {
   description = "Number of labs"
-  default = "2"
+  default = "25"
 }
 
 variable "operating_system" {
