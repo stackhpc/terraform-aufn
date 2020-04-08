@@ -87,4 +87,4 @@ Look at the steps involved in deploying Kayobe control plane:
 
 # Wrapping up
 
-Join the discussion at `#openstack-kayobe` channel on IRC.
+Join the discussion at `#openstack-kolla` channel on IRC.
