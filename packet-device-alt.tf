@@ -1,7 +1,6 @@
 resource "packet_device" "registry_alt" {
-  depends_on       = ["packet_ssh_key.default"]
+  depends_on = ["packet_ssh_key.default"]
 
-  count            = "1"
   hostname         = "${var.deploy_prefix}-registry-alt"
   operating_system = "${var.operating_system}"
   plan             = "${var.plan}"
@@ -11,6 +10,7 @@ resource "packet_device" "registry_alt" {
     private_key = "${tls_private_key.default.private_key_pem}"
     agent       = false
     timeout     = "30s"
+    host        = self.access_public_ipv4
   }
   facilities    = ["${var.packet_facility_alt}"]
   project_id    = "${var.packet_project_id}"
@@ -30,7 +30,7 @@ resource "packet_device" "registry_alt" {
 
 resource "packet_device" "lab_alt" {
 
-  depends_on       = ["packet_ssh_key.default"]
+  depends_on = ["packet_ssh_key.default"]
 
   count            = "${var.lab_count_alt}"
   hostname         = "${format("%s-lab-alt-%02d", var.deploy_prefix, count.index)}"
@@ -42,6 +42,7 @@ resource "packet_device" "lab_alt" {
     private_key = "${tls_private_key.default.private_key_pem}"
     agent       = false
     timeout     = "30s"
+    host        = self.access_public_ipv4
   }
 
   facilities    = ["${var.packet_facility_alt}"]
@@ -63,7 +64,7 @@ resource "packet_device" "lab_alt" {
   }
 
   provisioner "remote-exec" {
-    inline      = [
+    inline = [
       "yum install -y screen git",
       "su -c 'bash a-seed-from-nothing.sh ${packet_device.registry_alt.access_public_ipv4} > a-seed-from-nothing.out' - lab",
     ]

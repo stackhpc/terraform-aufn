@@ -1,20 +1,20 @@
-output "Registry IP" {
+output "Registry-IP" {
   value = "${packet_device.registry.access_public_ipv4}"
 }
 
-output "Alternative Registry IP" {
+output "Alternative-Registry-IP" {
   value = "${packet_device.registry_alt.access_public_ipv4}"
 }
 
-output "Lab IPs" {
+output "Lab-IPs" {
   value = "${
-    formatlist(
-      "ssh -o PreferredAuthentications=password lab@%s",
+    join("", formatlist(
+      "\nssh -o PreferredAuthentications=password lab@%s",
       concat(packet_device.lab_alt.*.access_public_ipv4, packet_device.lab.*.access_public_ipv4)
-  )}"
+  ))}"
 }
 
-output "Ansible Inventory" {
+output "Ansible-Inventory" {
   value = "${
     join("", formatlist(
       "\n%s ansible_host=%s ansible_user=root",
