@@ -1,7 +1,7 @@
 # Kayobe on Packet
 
 This Terraform deployment reproduces the environment for [a universe from
-seed](https://github.com/stackhpc/a-universe-from-nothing) workshop on Packet.
+nothing](https://github.com/stackhpc/a-universe-from-nothing) workshop on Packet.
 
 ## Software Components
 
