@@ -39,10 +39,6 @@ variable "operating_system" {
   default     = "centos_7"
 }
 
-variable "terraform_username" {
-  description = "username running Terraform to set in host tags to help identify resource owners"
-}
-
 variable "deploy_prefix" {
   description = "prefix to add to all hosts created under this deployment"
   default     = "kayobe"
