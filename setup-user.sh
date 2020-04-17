@@ -1,6 +1,6 @@
 #!/bin/bash
 
-useradd -m -G wheel -p 42ZTHaRqaaYvI -s /bin/bash lab
+useradd -m -G wheel -s /bin/bash lab
 
 cat <<EOF >> /etc/ssh/sshd_config
 

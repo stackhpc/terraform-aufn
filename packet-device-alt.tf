@@ -65,6 +65,7 @@ resource "packet_device" "lab_alt" {
 
   provisioner "remote-exec" {
     inline = [
+      "usermod -p `echo ${self.id} | openssl passwd -1 -stdin` lab",
       "yum install -y screen git",
       "su -c 'bash a-seed-from-nothing.sh ${packet_device.registry_alt.access_public_ipv4} > a-seed-from-nothing.out' - lab",
     ]
