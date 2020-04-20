@@ -15,7 +15,7 @@ if [ ! "$(docker ps -q -f name=registry)" ]; then
     docker run -d -p 4000:5000 --restart=always --name registry registry
 fi
 
-tag=rocky
+tag=${1:-train}
 images="kolla/centos-binary-kolla-toolbox
 kolla/centos-binary-haproxy
 kolla/centos-binary-mariadb
@@ -32,13 +32,12 @@ kolla/centos-binary-nova-compute
 kolla/centos-binary-keystone-fernet
 kolla/centos-binary-keystone-ssh
 kolla/centos-binary-keystone
-kolla/centos-binary-nova-placement-api
 kolla/centos-binary-nova-api
-kolla/centos-binary-nova-consoleauth
 kolla/centos-binary-nova-conductor
 kolla/centos-binary-nova-ssh
 kolla/centos-binary-nova-novncproxy
 kolla/centos-binary-nova-scheduler
+kolla/centos-binary-placement-api
 kolla/centos-binary-openvswitch-vswitchd
 kolla/centos-binary-openvswitch-db-server
 kolla/centos-binary-nova-libvirt

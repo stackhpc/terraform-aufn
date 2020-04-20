@@ -1,12 +1,13 @@
 # Kayobe on Packet
 
 This Terraform deployment reproduces the environment for [a universe from
-nothing](https://github.com/stackhpc/a-universe-from-nothing) workshop on Packet.
+nothing](https://github.com/stackhpc/a-universe-from-nothing) workshop on
+Packet.
 
 ## Software Components
 
-[Kayobe](https://kayobe.readthedocs.io/) enables deployment of containerised
-OpenStack to bare metal.
+[Kayobe](https://docs.openstack.org/kayobe/latest/) enables deployment of
+containerised OpenStack to bare metal.
 
 # Instructions for deployment
 
