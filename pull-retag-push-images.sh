@@ -6,13 +6,13 @@ set -e
 SECONDS=0
 
 # Install and start docker
-yum install docker -y
-systemctl enable docker
-systemctl start docker
+sudo yum install docker -y
+sudo systemctl enable docker
+sudo systemctl start docker
 
 # Start the registry if it does not exist
-if [ ! "$(docker ps -q -f name=registry)" ]; then
-    docker run -d -p 4000:5000 --restart=always --name registry registry
+if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
+    sudo docker run -d -p 4000:5000 --restart=always --name registry registry
 fi
 
 tag=${1:-train}
@@ -60,10 +60,10 @@ kolla/centos-binary-magnum-conductor
 kolla/centos-source-bifrost-deploy"
 
 for image in $images; do
-    docker pull $image:$tag
-    docker tag docker.io/$image:$tag localhost:4000/$image:$tag
-    docker push localhost:4000/$image:$tag
-    docker image remove docker.io/$image:$tag
+    sudo docker pull $image:$tag
+    sudo docker tag docker.io/$image:$tag localhost:4000/$image:$tag
+    sudo docker push localhost:4000/$image:$tag
+    sudo docker image remove docker.io/$image:$tag
 done
 
 # Duration
