@@ -1,6 +1,7 @@
 resource "packet_device" "registry_alt" {
   depends_on = [packet_ssh_key.default]
 
+  count            = var.lab_count_alt > 0 ? 1 : 0
   hostname         = "${var.deploy_prefix}-registry-alt"
   operating_system = var.operating_system
   plan             = var.plan
@@ -67,7 +68,7 @@ resource "packet_device" "lab_alt" {
     inline = [
       "usermod -p `echo ${self.id} | openssl passwd -1 -stdin` lab",
       "yum install -y screen git",
-      "su -c 'bash a-seed-from-nothing.sh ${packet_device.registry_alt.access_public_ipv4} > a-seed-from-nothing.out' - lab",
+      "su -c 'bash a-seed-from-nothing.sh ${packet_device.registry_alt[0].access_public_ipv4} > a-seed-from-nothing.out' - lab",
     ]
   }
 }

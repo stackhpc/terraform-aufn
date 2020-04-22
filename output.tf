@@ -1,9 +1,9 @@
 output "registry_ip" {
-  value = "${packet_device.registry.access_public_ipv4}"
+  value = "${var.lab_count > 0 ? packet_device.registry[0].access_public_ipv4 : ""}"
 }
 
 output "registry_ip_alt" {
-  value = "${packet_device.registry_alt.access_public_ipv4}"
+  value = "${var.lab_count_alt > 0 ? packet_device.registry_alt[0].access_public_ipv4 : ""}"
 }
 
 output "lab_ips" {
