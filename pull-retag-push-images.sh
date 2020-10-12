@@ -16,7 +16,7 @@ gpgcheck=1
 gpgkey=https://download.docker.com/linux/centos/gpg
 module_hotfixes = True
 EOF
-sudo dnf install -y docker-ce
+sudo dnf install -y docker-ce iptables
 sudo systemctl enable docker
 sudo systemctl start docker
 
