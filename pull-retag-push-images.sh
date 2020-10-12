@@ -6,7 +6,17 @@ set -e
 SECONDS=0
 
 # Install and start docker
-sudo yum install docker -y
+sudo dnf install -y 'dnf-command(config-manager)'
+cat << "EOF" | sudo tee /etc/yum.repos.d/docker-ce.repo
+[docker-ce-stable]
+name=Docker CE Stable - $basearch
+baseurl=https://download.docker.com/linux/centos/8/$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/centos/gpg
+module_hotfixes = True
+EOF
+sudo dnf install -y docker-ce
 sudo systemctl enable docker
 sudo systemctl start docker
 
@@ -15,7 +25,7 @@ if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
     sudo docker run -d -p 4000:5000 --restart=always --name registry registry
 fi
 
-tag=${1:-train}
+tag=${1:-train-centos8}
 images="kolla/centos-binary-kolla-toolbox
 kolla/centos-binary-haproxy
 kolla/centos-binary-mariadb
@@ -48,8 +58,8 @@ kolla/centos-binary-heat-api
 kolla/centos-binary-heat-api-cfn
 kolla/centos-binary-heat-engine
 kolla/centos-binary-horizon
-kolla/centos-binary-kibana
-kolla/centos-binary-elasticsearch
+kolla/centos-binary-kibana6
+kolla/centos-binary-elasticsearch6
 kolla/centos-binary-barbican-base
 kolla/centos-binary-barbican-api
 kolla/centos-binary-barbican-worker

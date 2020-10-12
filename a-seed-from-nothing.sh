@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Exit on error
-set -e
-
 # Reset SECONDS
 SECONDS=0
 
@@ -10,14 +7,28 @@ SECONDS=0
 registry_ip=$1
 echo "[INFO] Given docker registry IP: $registry_ip"
 
+# Disable the firewall.
+sudo systemctl is-enabled firewalld && sudo systemctl stop firewalld && sudo systemctl disable firewalld
+
+# Disable SELinux.
+sudo setenforce 0
+
+# Exit on error
+# NOTE(priteau): Need to be set here as setenforce can return a non-zero exit
+# code
+set -e
+
 # Clone Kayobe.
-[[ -d kayobe ]] || git clone https://git.openstack.org/openstack/kayobe.git -b stable/train
+[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/train
 cd kayobe
+
+# Clone the Tenks repository.
+[[ -d tenks ]] || git clone https://opendev.org/openstack/tenks.git
 
 # Clone this Kayobe configuration.
 mkdir -p config/src
 cd config/src/
-[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/train kayobe-config
+[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/train-centos8 kayobe-config
 
 # Set default registry name to the one we just created
 sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-config/etc/kayobe/docker.yml
@@ -27,7 +38,7 @@ sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-c
 
 # Install kayobe.
 cd ~/kayobe
-./dev/install.sh
+./dev/install-dev.sh
 
 # Deploy hypervisor services.
 ./dev/seed-hypervisor-deploy.sh
@@ -37,20 +48,11 @@ cd ~/kayobe
 # custom docker registry.
 if ! ./dev/seed-deploy.sh; then
     # Pull, retag images, then push to our local registry.
-    ./config/src/kayobe-config/pull-retag-push-images.sh train
+    ./config/src/kayobe-config/pull-retag-push-images.sh train-centos8
 
     # Deploy a seed VM. Should work this time.
     ./dev/seed-deploy.sh
 fi
-
-# Clone the Tenks repository.
-[[ -d tenks ]] || git clone https://git.openstack.org/openstack/tenks.git -b stable/1.0
-
-# Install Open vSwitch for Tenks.
-sudo yum install -y centos-release-openstack-train
-sudo yum install -y openvswitch
-sudo systemctl enable openvswitch
-sudo systemctl start openvswitch
 
 # Duration
 duration=$SECONDS

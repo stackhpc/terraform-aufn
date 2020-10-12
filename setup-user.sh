@@ -25,9 +25,9 @@ Immediately change the default password.
 
     passwd
 
-Optionally, attach to a screen session in case the connection drops:
+Optionally, attach to a tmux session in case the connection drops:
 
-    screen -drR
+    tmux
 
 To view the script that was used to deploy the seed in this instance:
 

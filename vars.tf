@@ -36,7 +36,7 @@ variable "lab_count_alt" {
 
 variable "operating_system" {
   description = "Operating System to install across nodes"
-  default     = "centos_7"
+  default     = "centos_8"
 }
 
 variable "deploy_prefix" {

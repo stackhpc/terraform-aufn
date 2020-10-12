@@ -72,7 +72,7 @@ resource "packet_device" "lab" {
   provisioner "remote-exec" {
     inline = [
       "usermod -p `echo ${self.id} | openssl passwd -1 -stdin` lab",
-      "yum install -y screen git",
+      "yum install -y git tmux",
       "su -c 'bash a-seed-from-nothing.sh ${packet_device.registry[0].access_public_ipv4} > a-seed-from-nothing.out' - lab",
     ]
   }
