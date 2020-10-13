@@ -25,10 +25,11 @@ if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
     sudo docker run -d -p 4000:5000 --restart=always --name registry registry
 fi
 
-tag=${1:-train-centos8}
+tag=${1:-ussuri}
 images="kolla/centos-binary-kolla-toolbox
 kolla/centos-binary-haproxy
 kolla/centos-binary-mariadb
+kolla/centos-binary-mariadb-clustercheck
 kolla/centos-binary-fluentd
 kolla/centos-binary-cron
 kolla/centos-binary-keepalived
@@ -58,8 +59,8 @@ kolla/centos-binary-heat-api
 kolla/centos-binary-heat-api-cfn
 kolla/centos-binary-heat-engine
 kolla/centos-binary-horizon
-kolla/centos-binary-kibana6
-kolla/centos-binary-elasticsearch6
+kolla/centos-binary-kibana
+kolla/centos-binary-elasticsearch
 kolla/centos-binary-barbican-base
 kolla/centos-binary-barbican-api
 kolla/centos-binary-barbican-worker
