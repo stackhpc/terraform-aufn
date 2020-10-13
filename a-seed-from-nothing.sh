@@ -27,7 +27,7 @@ net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 EOF
 sudo sysctl --load /etc/sysctl.d/70-ipv6.conf
-sudo systemctl disable NetworkManager; sudo systemctl enable network; sudo ip link del dev bond0; sudo systemctl stop NetworkManager; sudo systemctl start network
+sudo systemctl is-active NetworkManager && (sudo systemctl disable NetworkManager; sudo systemctl enable network; sudo ip link del dev bond0; sudo systemctl stop NetworkManager; sudo systemctl start network)
 
 # Clone Kayobe.
 [[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/train
