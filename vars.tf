@@ -19,9 +19,14 @@ variable "packet_facility_alt" {
   default     = "nrt1"
 }
 
-variable "plan" {
-  description = "Instance type"
+variable "lab_plan" {
+  description = "Lab instance type"
   default     = "c1.small.x86"
+}
+
+variable "registry_plan" {
+  description = "Registry instance type"
+  default     = "t1.small.x86"
 }
 
 variable "lab_count" {

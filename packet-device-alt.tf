@@ -4,7 +4,7 @@ resource "packet_device" "registry_alt" {
   count            = var.lab_count_alt > 0 ? 1 : 0
   hostname         = "${var.deploy_prefix}-registry-alt"
   operating_system = var.operating_system
-  plan             = var.plan
+  plan             = var.registry_plan
 
   connection {
     user        = "root"
@@ -36,7 +36,7 @@ resource "packet_device" "lab_alt" {
   count            = var.lab_count_alt
   hostname         = format("%s-lab-alt-%02d", var.deploy_prefix, count.index)
   operating_system = var.operating_system
-  plan             = var.plan
+  plan             = var.lab_plan
 
   connection {
     user        = "root"
