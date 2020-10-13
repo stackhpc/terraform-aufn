@@ -25,7 +25,7 @@ if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
     sudo docker run -d -p 4000:5000 --restart=always --name registry registry
 fi
 
-tag=${1:-ussuri}
+tag=${1:-master}
 images="kolla/centos-binary-kolla-toolbox
 kolla/centos-binary-haproxy
 kolla/centos-binary-mariadb
