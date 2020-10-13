@@ -17,10 +17,10 @@ output "ansible_inventory" {
   value = <<EOT
 .
     [lab]
-join("\n",
+${join("\n",
   formatlist("    %s ansible_host=%s ansible_user=lab",
     concat(packet_device.lab_alt.*.hostname, packet_device.lab.*.hostname),
     concat(packet_device.lab_alt.*.access_public_ipv4, packet_device.lab.*.access_public_ipv4)
-))
+))}
 EOT
 }
