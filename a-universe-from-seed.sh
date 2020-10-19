@@ -44,9 +44,6 @@ kayobe overcloud post configure
 # which will fail. Replace this with the floating IP of the seed hypervisor
 # VM.
 
-# Work around Docker iptables issues
-kayobe overcloud host command run --command "iptables -P FORWARD ACCEPT" --become --limit controllers
-
 # The following script will register some resources in OpenStack to enable
 # booting up a tenant VM.
 source config/src/kayobe-config/etc/kolla/public-openrc.sh
