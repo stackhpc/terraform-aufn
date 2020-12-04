@@ -1,23 +1,23 @@
 #!/bin/bash
 
-useradd -m -G wheel -s /bin/bash lab
+sudo useradd -m -G wheel -s /bin/bash lab
 
-cat <<EOF >> /etc/ssh/sshd_config
+cat <<EOF | sudo tee -a /etc/ssh/sshd_config
 
 Match user lab
   PasswordAuthentication yes
 
 EOF
 
-service sshd restart
+sudo systemctl restart sshd
 
-cat <<EOF >> /etc/sudoers
+cat <<EOF | sudo tee -a /etc/sudoers
 
 %wheel  ALL=(ALL)       NOPASSWD: ALL
 
 EOF
 
-cat <<EOF > /etc/motd
+cat <<EOF | sudo tee /etc/motd
 
 Welcome to the Kayobe Lab!
 
