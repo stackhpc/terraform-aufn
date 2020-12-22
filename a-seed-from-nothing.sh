@@ -80,12 +80,9 @@ sed -i.bak -e "s%^[# ]*libvirt_pool_path:.*%libvirt_pool_path: /var/lib/libvirt/
 ./dev/seed-hypervisor-deploy.sh
 
 # Deploy a seed VM.
-# NOTE: This will work the first time because the packet configuration uses a
-# custom docker registry.
+# NOTE: This should work the first time because the packet configuration uses a
+# custom docker registry.  However, there are sometimes issues with Docker starting up on the seed (FIXME)
 if ! ./dev/seed-deploy.sh; then
-    # Pull, retag images, then push to our local registry.
-    ./config/src/kayobe-config/pull-retag-push-images.sh ussuri
-
     # Deploy a seed VM. Should work this time.
     ./dev/seed-deploy.sh
 fi
