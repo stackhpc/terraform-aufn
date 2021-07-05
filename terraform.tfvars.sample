@@ -1,3 +1,4 @@
-lab_count    = 6
-lab_net_ipv4 = aufn-ipv4-vlan
-lab_net_ipv6 = aufn-ipv6-vlan
+lab_count     = 6
+lab_net_ipv4  = aufn-ipv4-vlan
+lab_net_ipv6  = aufn-ipv6-vlan
+deploy_prefix = aufn
