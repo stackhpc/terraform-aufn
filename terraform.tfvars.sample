@@ -1,7 +1,3 @@
-packet_auth_token="ABCDEFGHIJKLMNOPQRSTUVWXYZ123456"
-packet_project_id="12345678-90AB-CDEF-GHIJ-KLMNOPQR"
-deploy_prefix=kayobe
-packet_facility="ewr1"
-lab_count=25
-packet_facility_alt="nrt1"
-lab_count_alt=25
+lab_count    = 6
+lab_net_ipv4 = aufn-ipv4-vlan
+lab_net_ipv6 = aufn-ipv6-vlan

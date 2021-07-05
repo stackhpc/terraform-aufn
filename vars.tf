@@ -25,12 +25,12 @@ variable "lab_count" {
 
 variable "lab_net_ipv6" {
   description = "Network for lab"
-  default     = "stackhpc-ipv6-geneve"
+  default     = "aufn-ipv6-geneve"
 }
 
 variable "lab_net_ipv4" {
   description = "Network for lab"
-  default     = "stackhpc-ipv4-vlan-v2"
+  default     = "aufn-ipv4-vlan"
 }
 
 variable "deploy_prefix" {

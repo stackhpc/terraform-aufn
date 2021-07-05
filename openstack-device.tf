@@ -93,7 +93,7 @@ resource "null_resource" "lab" {
 
   triggers = {
     registry_ip = openstack_compute_instance_v2.registry.access_ip_v4
-    host_id = openstack_compute_instance_v2.lab[count.index].id
+    host_id     = openstack_compute_instance_v2.lab[count.index].id
   }
 
   provisioner "remote-exec" {
@@ -114,7 +114,7 @@ resource "null_resource" "lab" {
     inline = [
       "sudo install /tmp/a-seed-from-nothing.sh /home/lab",
       "sudo install /tmp/a-universe-from-seed.sh /home/lab",
-      "echo ${self.triggers.host_id}; sudo usermod -p `echo ${self.triggers.host_id} | openssl passwd -1 -stdin` lab",
+      "sudo usermod -p `echo ${self.triggers.host_id} | openssl passwd -1 -stdin` lab",
       "sudo yum install -y git tmux",
       "# sudo -u lab /home/lab/a-seed-from-nothing.sh ${self.triggers.registry_ip} | sudo -u lab tee -a /home/lab/a-seed-from-nothing.out",
     ]
