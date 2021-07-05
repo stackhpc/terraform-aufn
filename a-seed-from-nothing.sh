@@ -4,6 +4,7 @@
 SECONDS=0
 
 # Registry IP
+[[ -z "$1" ]] && echo "Usage ./a-seed-from-nothing.sh <registry IP>" && exit 1
 registry_ip=$1
 echo "[INFO] Given docker registry IP: $registry_ip"
 
@@ -13,21 +14,22 @@ rpm -q firewalld && sudo systemctl is-enabled firewalld && sudo systemctl stop f
 # Disable SELinux.
 sudo setenforce 0
 
-# Exit on error
-# NOTE(priteau): Need to be set here as setenforce can return a non-zero exit
-# code
-set -e
-
 # Work around connectivity issues seen while configuring this node as seed
 # hypervisor with Kayobe
 sudo dnf install -y network-scripts
-sudo rm -f /etc/sysconfig/network-scripts/ifcfg-ens3
+sudo rm -f /etc/sysconfig/network-scripts/ifcfg-ens3*
 cat <<EOF | sudo tee /etc/sysctl.d/70-ipv6.conf
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 EOF
 sudo sysctl --load /etc/sysctl.d/70-ipv6.conf
-sudo systemctl is-active NetworkManager && (sudo systemctl disable NetworkManager; sudo systemctl enable network; sudo systemctl stop NetworkManager; sudo systemctl start network)
+sudo systemctl is-active NetworkManager && (sudo systemctl disable NetworkManager; sudo systemctl stop NetworkManager)
+sudo systemctl is-active network || (sudo systemctl enable network; sudo pkill dhclient; sudo systemctl start network)
+
+# Exit on error
+# NOTE(priteau): Need to be set here as setenforce can return a non-zero exit code
+# NOTE(brtknr): pkill dhclient may exit 1 so set -e from here
+set -e
 
 # Clone Kayobe.
 cd $HOME
@@ -57,24 +59,6 @@ sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-c
 # Install kayobe.
 cd ~/kayobe
 ./dev/install-dev.sh
-
-# Prepare LVM on scratch disk: ensure the scratch disk is not mounted 
-scratch_dev="/dev/vdb"
-while read blkdev fs rest
-do
-    [[ $blkdev = "$scratch_dev" ]] && (echo Unmounting scratch device $scratch_dev ; sudo umount $scratch_dev)
-done < /proc/mounts
-
-# Configure Kayobe to make use of the scratch disk for LVM for libvirt
-# This will mount the LVM volume on /var/lib/libvirt/images
-sed -i.bak -e "s%^[# ]*seed_hypervisor_lvm_groups:.*%seed_hypervisor_lvm_groups: \"{{ seed_hypervisor_lvm_groups_with_data }}\"%" \
-           -e "s%^[# ]*seed_hypervisor_lvm_group_data_disks:.*%seed_hypervisor_lvm_group_data_disks: \[\"$scratch_dev\"\]%" \
-           ~/kayobe/config/src/kayobe-config/etc/kayobe/seed-hypervisor.yml
-
-# Remap Tenks configuration to share the storage at /var/lib/libvirt/images
-sed -i.bak -e "s%^[# ]*libvirt_pool_path:.*%libvirt_pool_path: /var/lib/libvirt/images/%" \
-           -e 's%^libvirt_pool_name:.*%libvirt_pool_name: default%' \
-           ~/kayobe/tenks/ansible/group_vars/libvirt
 
 # Deploy hypervisor services.
 ./dev/seed-hypervisor-deploy.sh

@@ -20,6 +20,9 @@ sudo dnf install -y docker-ce iptables
 sudo systemctl enable docker
 sudo systemctl start docker
 
+# Set MTU of default interface to 1400 so that images can download from Docker Hub without timing out
+sudo ip link set mtu 1400 dev `ip -4 route ls | grep default | grep -Po '(?<=dev )(\S+)'`
+
 # Start the registry if it does not exist
 if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
     sudo docker run -d -p 4000:5000 --restart=always --name registry registry

@@ -6,9 +6,6 @@ terraform {
     null = {
       source = "hashicorp/null"
     }
-    packet = {
-      source = "packethost/packet"
-    }
     tls = {
       source = "hashicorp/tls"
     }
