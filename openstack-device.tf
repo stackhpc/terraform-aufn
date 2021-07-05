@@ -5,7 +5,7 @@ resource "openstack_compute_keypair_v2" "ufn_lab_key" {
 
 
 resource "openstack_compute_instance_v2" "bastion" {
-  name            = "${var.deploy_prefix}-bastion"
+  name            = "${var.lab_prefix}-bastion"
   image_name      = var.image_name
   flavor_name     = var.bastion_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
@@ -18,10 +18,14 @@ resource "openstack_compute_instance_v2" "bastion" {
   network {
     name = var.lab_net_ipv4
   }
+
+  timeouts {
+    create = "30m"
+  }
 }
 
 resource "openstack_compute_instance_v2" "registry" {
-  name            = "${var.deploy_prefix}-registry"
+  name            = "${var.lab_prefix}-registry"
   image_name      = var.image_name
   flavor_name     = var.registry_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
@@ -63,7 +67,7 @@ resource "null_resource" "registry" {
 resource "openstack_compute_instance_v2" "lab" {
 
   count           = var.lab_count
-  name            = format("%s-lab-%02d", var.deploy_prefix, count.index)
+  name            = format("%s-lab-%02d", var.lab_prefix, count.index)
   image_name      = var.image_name
   flavor_name     = var.lab_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name

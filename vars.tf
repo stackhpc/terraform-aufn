@@ -33,7 +33,7 @@ variable "lab_net_ipv4" {
   default     = "aufn-ipv4-vlan"
 }
 
-variable "deploy_prefix" {
+variable "lab_prefix" {
   description = "prefix to add to all hosts created under this deployment"
   default     = "kayobe"
 }
