@@ -31,7 +31,7 @@ fi
 tag=${1:-victoria}
 images="kolla/centos-binary-kolla-toolbox
 kolla/centos-binary-haproxy
-kolla/centos-binary-mariadb
+kolla/centos-binary-mariadb-server
 kolla/centos-binary-mariadb-clustercheck
 kolla/centos-binary-fluentd
 kolla/centos-binary-cron
