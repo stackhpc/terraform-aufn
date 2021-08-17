@@ -33,7 +33,7 @@ set -e
 
 # Clone Kayobe.
 cd $HOME
-[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/ussuri
+[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/victoria
 cd kayobe
 
 # Bump the provisioning time - it can be lengthy on virtualised storage
@@ -45,10 +45,7 @@ sed -i.bak 's%^[# ]*wait_active_timeout:.*%    wait_active_timeout: 5000%' ~/kay
 # Clone this Kayobe configuration.
 mkdir -p config/src
 cd config/src/
-# FIXME: stable/ussuri branch currently specifies a CentOS 8.1 based seed VM image,
-# which doesn't work with a Bifrost image based on CentOS 8.2 (libvirt incompatibilities exposed by virt-customize)
-#[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/ussuri kayobe-config
-[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b seed-centos-8.2 kayobe-config
+[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/victoria kayobe-config
 
 # Set default registry name to the one we just created
 sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-config/etc/kayobe/docker.yml
