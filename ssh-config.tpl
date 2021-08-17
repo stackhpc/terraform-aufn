@@ -1,6 +1,7 @@
 Host ${bastion.name}
   HostName ${bastion.ip}
   User centos
+  ForwardAgent yes
 
 Host ${registry.name}
   HostName ${registry.ip}

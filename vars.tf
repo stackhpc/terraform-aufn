@@ -37,3 +37,6 @@ variable "lab_prefix" {
   description = "prefix to add to all hosts created under this deployment"
   default     = "kayobe"
 }
+
+variable "lab_fip" {
+}

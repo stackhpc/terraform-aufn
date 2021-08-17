@@ -24,6 +24,35 @@ resource "openstack_compute_instance_v2" "bastion" {
   }
 }
 
+resource "openstack_compute_floatingip_associate_v2" "bastion" {
+  floating_ip = var.lab_fip
+  instance_id = openstack_compute_instance_v2.bastion.id
+}
+
+resource "null_resource" "bastion" {
+  connection {
+    host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
+    user        = "centos"
+    private_key = tls_private_key.default.private_key_pem
+    agent       = false
+    timeout     = "300s"
+  }
+
+  triggers = {
+    ssh_config  = templatefile("ssh-config.tpl", local.template)
+  }
+
+  provisioner "file" {
+    content     = self.triggers.ssh_config
+    destination = "/tmp/ssh_config"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p ~/.ssh; chmod 0700 ~/.ssh; cp /tmp/ssh_config ~/.ssh/config",
+    ]
+  }
+}
 resource "openstack_compute_instance_v2" "registry" {
   name            = "${var.lab_prefix}-registry"
   image_name      = var.image_name
@@ -40,7 +69,7 @@ resource "null_resource" "registry" {
   connection {
     bastion_user        = "centos"
     bastion_private_key = tls_private_key.default.private_key_pem
-    bastion_host        = openstack_compute_instance_v2.bastion.access_ip_v6
+    bastion_host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
     user                = "centos"
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
@@ -86,7 +115,7 @@ resource "null_resource" "lab" {
   connection {
     bastion_user        = "centos"
     bastion_private_key = tls_private_key.default.private_key_pem
-    bastion_host        = openstack_compute_instance_v2.bastion.access_ip_v6
+    bastion_host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
     user                = "centos"
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
@@ -98,6 +127,7 @@ resource "null_resource" "lab" {
   triggers = {
     registry_ip = openstack_compute_instance_v2.registry.access_ip_v4
     host_id     = openstack_compute_instance_v2.lab[count.index].id
+    mtu         = 1500
   }
 
   provisioner "remote-exec" {
@@ -117,6 +147,7 @@ resource "null_resource" "lab" {
   provisioner "remote-exec" {
     inline = [
       "sudo install /tmp/a-seed-from-nothing.sh /home/lab",
+      "sudo ip link set mtu ${self.triggers.mtu} dev eth0",
       "sudo install /tmp/a-universe-from-seed.sh /home/lab",
       "sudo usermod -p `echo ${self.triggers.host_id} | openssl passwd -1 -stdin` lab",
       "sudo yum install -y git tmux",
