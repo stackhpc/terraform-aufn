@@ -54,6 +54,10 @@ kolla/centos-binary-nova-scheduler
 kolla/centos-binary-placement-api
 kolla/centos-binary-openvswitch-vswitchd
 kolla/centos-binary-openvswitch-db-server
+kolla/centos-binary-ovn-controller
+kolla/centos-binary-ovn-northd
+kolla/centos-binary-ovn-sb-db-server
+kolla/centos-binary-ovn-nb-db-server
 kolla/centos-binary-nova-libvirt
 kolla/centos-binary-memcached
 kolla/centos-binary-rabbitmq
