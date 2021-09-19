@@ -33,7 +33,7 @@ set -e
 
 # Clone Kayobe.
 cd $HOME
-[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/victoria
+[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/wallaby
 cd kayobe
 
 # Bump the provisioning time - it can be lengthy on virtualised storage
@@ -45,8 +45,8 @@ sed -i.bak 's%^[# ]*wait_active_timeout:.*%    wait_active_timeout: 5000%' ~/kay
 # Clone this Kayobe configuration.
 mkdir -p config/src
 cd config/src/
-#[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/victoria kayobe-config
-[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b victoria-ovn kayobe-config
+#[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/wallaby kayobe-config
+[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b nesi-wallaby kayobe-config
 
 # Set default registry name to the one we just created
 sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-config/etc/kayobe/docker.yml
