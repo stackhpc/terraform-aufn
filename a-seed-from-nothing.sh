@@ -31,6 +31,22 @@ sudo systemctl is-active network || (sudo systemctl enable network; sudo pkill d
 # NOTE(brtknr): pkill dhclient may exit 1 so set -e from here
 set -e
 
+# Ensure an ssh key is generated
+keyfile="$HOME/.ssh/id_rsa"
+if [[ ! -f $keyfile ]]
+then
+    echo "Generating ssh keypair $keyfile"
+    ssh-keygen -t rsa -f $keyfile -C 'AUFN Lab user' -P ''
+fi
+if ! sudo grep -q "$(< $keyfile.pub)" ~centos/.ssh/authorized_keys
+then
+    echo "Authorizing keypair for centos user"
+    sudo install -d -o centos -g centos -m 0700 ~centos/.ssh
+    cat $keyfile.pub | sudo -u centos tee -a ~centos/.ssh/authorized_keys
+    sudo chmod 0600 ~centos/.ssh/authorized_keys
+    sudo chown centos.centos ~centos/.ssh/authorized_keys
+fi
+
 # Clone Kayobe.
 cd $HOME
 [[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/wallaby
