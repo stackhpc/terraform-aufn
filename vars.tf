@@ -20,7 +20,7 @@ variable "registry_data_vol" {
 
 variable "image_name" {
   description = "Lab software image base"
-  default     = "CentOS8.3-cloud"
+  default     = "CentOS-stream8"
 }
 
 variable "image_user" {
