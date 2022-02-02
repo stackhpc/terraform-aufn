@@ -3,62 +3,28 @@ resource "openstack_compute_keypair_v2" "ufn_lab_key" {
   public_key = tls_private_key.default.public_key_openssh
 }
 
-
-resource "openstack_compute_instance_v2" "bastion" {
-  name            = "${var.lab_prefix}-bastion"
-  image_name      = var.image_name
-  flavor_name     = var.bastion_flavor
-  key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
-  security_groups = ["default"]
-
-  network {
-    name = var.lab_net_ipv6
-  }
-
-  network {
-    name = var.lab_net_ipv4
-  }
-
-  timeouts {
-    create = "30m"
-  }
-}
-
-resource "openstack_compute_floatingip_associate_v2" "bastion" {
-  floating_ip = var.lab_fip
-  instance_id = openstack_compute_instance_v2.bastion.id
-}
-
-resource "null_resource" "bastion" {
-  connection {
-    host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
-    user        = "centos"
-    private_key = tls_private_key.default.private_key_pem
-    agent       = false
-    timeout     = "300s"
-  }
-
-  triggers = {
-    ssh_config  = templatefile("ssh-config.tpl", local.template)
-  }
-
-  provisioner "file" {
-    content     = self.triggers.ssh_config
-    destination = "/tmp/ssh_config"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "mkdir -p ~/.ssh; chmod 0700 ~/.ssh; cp /tmp/ssh_config ~/.ssh/config",
-    ]
-  }
-}
 resource "openstack_compute_instance_v2" "registry" {
   name            = "${var.lab_prefix}-registry"
   image_name      = var.image_name
   flavor_name     = var.registry_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
   security_groups = ["default"]
+
+  block_device {
+    uuid                  = "938a0642-9a88-4c35-8f08-bdc5c0ab0539"
+    source_type           = "image"
+    destination_type      = "local"
+    boot_index            = 0
+    delete_on_termination = true
+  }
+
+  block_device {
+    uuid                  = openstack_blockstorage_volume_v3.registry.id
+    source_type           = "volume"
+    destination_type      = "volume"
+    boot_index            = 1
+    delete_on_termination = true
+  }
 
   network {
     name = var.lab_net_ipv4
@@ -67,14 +33,11 @@ resource "openstack_compute_instance_v2" "registry" {
 
 resource "null_resource" "registry" {
   connection {
-    bastion_user        = "centos"
-    bastion_private_key = tls_private_key.default.private_key_pem
-    bastion_host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
-    user                = "centos"
+    user                = "ubuntu"
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = openstack_compute_instance_v2.registry.access_ip_v4
+    host                = openstack_compute_floatingip_associate_v2.registry.floating_ip
   }
 
   triggers = {
@@ -93,6 +56,20 @@ resource "null_resource" "registry" {
   }
 }
 
+resource "openstack_compute_floatingip_v2" "registry" {
+  pool = "external"
+}
+
+resource "openstack_compute_floatingip_associate_v2" "registry" {
+  floating_ip = openstack_compute_floatingip_v2.registry.address
+  instance_id = openstack_compute_instance_v2.registry.id
+}
+
+resource "openstack_blockstorage_volume_v3" "registry" {
+  name = format("%s-registry", var.lab_prefix)
+  size = var.registry_data_vol
+}
+
 resource "openstack_compute_instance_v2" "lab" {
 
   count           = var.lab_count
@@ -100,29 +77,61 @@ resource "openstack_compute_instance_v2" "lab" {
   image_name      = var.image_name
   flavor_name     = var.lab_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
-  security_groups = ["default"]
+  security_groups = ["default", "AUFN"]
 
   network {
     name = var.lab_net_ipv4
   }
 
+  block_device {
+    uuid                  = "938a0642-9a88-4c35-8f08-bdc5c0ab0539"
+    source_type           = "image"
+    destination_type      = "local"
+    boot_index            = 0
+    delete_on_termination = true
+  }
+
+  block_device {
+    uuid                  = openstack_blockstorage_volume_v3.lab[count.index].id
+    source_type           = "volume"
+    destination_type      = "volume"
+    boot_index            = 1
+    delete_on_termination = true
+  }
+
+
   depends_on = [openstack_compute_keypair_v2.ufn_lab_key]
+}
+
+
+resource "openstack_compute_floatingip_v2" "lab" {
+  count = var.lab_count
+  pool = "external"
+}
+
+resource "openstack_compute_floatingip_associate_v2" "lab" {
+  count = var.lab_count
+
+  floating_ip = openstack_compute_floatingip_v2.lab[count.index].address
+  instance_id = openstack_compute_instance_v2.lab[count.index].id
+}
+
+resource "openstack_blockstorage_volume_v3" "lab" {
+  count = var.lab_count
+  name = format("%s-lab-%02d", var.lab_prefix, count.index)
+  size = var.lab_data_vol
 }
 
 resource "null_resource" "lab" {
   count = var.lab_count
 
   connection {
-    bastion_user        = "centos"
-    bastion_private_key = tls_private_key.default.private_key_pem
-    bastion_host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
-    user                = "centos"
+    user                = "ubuntu"
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = openstack_compute_instance_v2.lab[count.index].access_ip_v4
+    host                = openstack_compute_floatingip_associate_v2.lab[count.index].floating_ip
   }
-
 
   triggers = {
     registry_ip = openstack_compute_instance_v2.registry.access_ip_v4
@@ -147,10 +156,8 @@ resource "null_resource" "lab" {
   provisioner "remote-exec" {
     inline = [
       "sudo install /tmp/a-seed-from-nothing.sh /home/lab",
-      "sudo ip link set mtu ${self.triggers.mtu} dev eth0",
       "sudo install /tmp/a-universe-from-seed.sh /home/lab",
       "sudo usermod -p `echo ${self.triggers.host_id} | openssl passwd -1 -stdin` lab",
-      "sudo yum install -y git tmux",
       "# sudo -u lab /home/lab/a-seed-from-nothing.sh ${self.triggers.registry_ip} | sudo -u lab tee -a /home/lab/a-seed-from-nothing.out",
     ]
   }

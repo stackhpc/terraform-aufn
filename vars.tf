@@ -13,6 +13,11 @@ variable "registry_flavor" {
   default     = "general.v1.medium"
 }
 
+variable "registry_data_vol" {
+  description = "Registry data volume in GB"
+  default = "100"
+}
+
 variable "image_name" {
   description = "Lab software image base"
   default     = "CentOS8.3-cloud"
@@ -23,9 +28,9 @@ variable "lab_count" {
   default     = "2"
 }
 
-variable "lab_net_ipv6" {
-  description = "Network for lab"
-  default     = "aufn-ipv6-geneve"
+variable "lab_data_vol" {
+  description = "Lab data volume in GB"
+  default = "200"
 }
 
 variable "lab_net_ipv4" {
@@ -38,5 +43,3 @@ variable "lab_prefix" {
   default     = "kayobe"
 }
 
-variable "lab_fip" {
-}
