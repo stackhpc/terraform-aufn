@@ -23,6 +23,11 @@ variable "image_name" {
   default     = "CentOS8.3-cloud"
 }
 
+variable "image_user" {
+  description = "Lab software image cloud user"
+  default     = "centos"
+}
+
 variable "lab_count" {
   description = "Number of labs"
   default     = "2"

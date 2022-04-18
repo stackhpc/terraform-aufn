@@ -5,24 +5,36 @@ set -e
 # Reset SECONDS
 SECONDS=0
 
-# Mount the second volume to provide additional capacity
-if ! grep -q /dev/vdb /proc/mounts
-then
-    sudo mkfs -t ext4 /dev/vdb
-    sudo mkdir -p /var/lib/docker
-    sudo mount -t ext4 /dev/vdb /var/lib/docker
-    echo "/dev/vdb /var/lib/docker ext4 defaults 0 0" | sudo tee -a /etc/fstab
-fi
+# DISTRO: CentOS or Ubuntu?
+DISTRO=centos
 
-# Install and start docker
-[[ -f /usr/share/keyrings/docker-archive-keyring.gpg ]] || (curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg)
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-sudo systemctl enable docker
-sudo systemctl start docker
+if [[ "${DISTRO}" = "ubuntu" ]]
+then
+    # Install and start docker
+    [[ -f /usr/share/keyrings/docker-archive-keyring.gpg ]] || (curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg)
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    sudo systemctl enable docker
+    sudo systemctl start docker
+else
+    # Install and start docker
+    sudo dnf install -y 'dnf-command(config-manager)'
+    cat << "EOF" | sudo tee /etc/yum.repos.d/docker-ce.repo
+[docker-ce-stable]
+name=Docker CE Stable - $basearch
+baseurl=https://download.docker.com/linux/centos/8/$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/centos/gpg
+module_hotfixes = True
+EOF
+    sudo dnf install -y docker-ce iptables
+    sudo systemctl enable docker
+    sudo systemctl start docker
+fi
 
 # Start the registry if it does not exist
 if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
@@ -30,67 +42,71 @@ if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
 fi
 
 tag=${1:-wallaby}
-images="kolla/ubuntu-source-kolla-toolbox
-kolla/ubuntu-source-haproxy
-kolla/ubuntu-source-mariadb-server
-kolla/ubuntu-source-mariadb-clustercheck
-kolla/ubuntu-source-fluentd
-kolla/ubuntu-source-cron
-kolla/ubuntu-source-keepalived
-kolla/ubuntu-source-neutron-server
-kolla/ubuntu-source-neutron-l3-agent
-kolla/ubuntu-source-neutron-metadata-agent
-kolla/ubuntu-source-neutron-openvswitch-agent
-kolla/ubuntu-source-neutron-dhcp-agent
-kolla/ubuntu-source-glance-api
-kolla/ubuntu-source-nova-compute
-kolla/ubuntu-source-keystone-fernet
-kolla/ubuntu-source-keystone-ssh
-kolla/ubuntu-source-keystone
-kolla/ubuntu-source-nova-api
-kolla/ubuntu-source-nova-conductor
-kolla/ubuntu-source-nova-ssh
-kolla/ubuntu-source-nova-novncproxy
-kolla/ubuntu-source-nova-scheduler
-kolla/ubuntu-source-placement-api
-kolla/ubuntu-source-openvswitch-vswitchd
-kolla/ubuntu-source-openvswitch-db-server
-kolla/ubuntu-source-nova-libvirt
-kolla/ubuntu-source-memcached
-kolla/ubuntu-source-rabbitmq
-kolla/ubuntu-source-chrony
-kolla/ubuntu-source-heat-api
-kolla/ubuntu-source-heat-api-cfn
-kolla/ubuntu-source-heat-engine
-kolla/ubuntu-source-horizon
-kolla/ubuntu-source-kibana
-kolla/ubuntu-source-elasticsearch
-kolla/ubuntu-source-elasticsearch-curator
-kolla/ubuntu-source-barbican-base
-kolla/ubuntu-source-barbican-api
-kolla/ubuntu-source-barbican-worker
-kolla/ubuntu-source-barbican-keystone-listener
-kolla/ubuntu-source-magnum-base
-kolla/ubuntu-source-magnum-api
-kolla/ubuntu-source-magnum-conductor
-kolla/ubuntu-source-prometheus-alertmanager
-kolla/ubuntu-source-prometheus-v2-server
-kolla/ubuntu-source-prometheus-server
-kolla/ubuntu-source-prometheus-cadvisor
-kolla/ubuntu-source-prometheus-haproxy-exporter
-kolla/ubuntu-source-prometheus-mtail
-kolla/ubuntu-source-prometheus-memcached-exporter
-kolla/ubuntu-source-prometheus-blackbox-exporter
-kolla/ubuntu-source-prometheus-node-exporter
-kolla/ubuntu-source-prometheus-elasticsearch-exporter
-kolla/ubuntu-source-prometheus-mysqld-exporter
-kolla/ubuntu-source-prometheus-openstack-exporter
-kolla/ubuntu-source-grafana
-kolla/ubuntu-source-cinder-scheduler
-kolla/ubuntu-source-cinder-volume
-kolla/ubuntu-source-cinder-backup
-kolla/ubuntu-source-cinder-api
-kolla/ubuntu-source-bifrost-deploy"
+images="kolla/${DISTRO}-source-kolla-toolbox
+kolla/${DISTRO}-source-haproxy
+kolla/${DISTRO}-source-mariadb-server
+kolla/${DISTRO}-source-mariadb-clustercheck
+kolla/${DISTRO}-source-fluentd
+kolla/${DISTRO}-source-cron
+kolla/${DISTRO}-source-keepalived
+kolla/${DISTRO}-source-neutron-server
+kolla/${DISTRO}-source-neutron-l3-agent
+kolla/${DISTRO}-source-neutron-metadata-agent
+kolla/${DISTRO}-source-neutron-openvswitch-agent
+kolla/${DISTRO}-source-neutron-dhcp-agent
+kolla/${DISTRO}-source-glance-api
+kolla/${DISTRO}-source-nova-compute
+kolla/${DISTRO}-source-keystone-fernet
+kolla/${DISTRO}-source-keystone-ssh
+kolla/${DISTRO}-source-keystone
+kolla/${DISTRO}-source-nova-api
+kolla/${DISTRO}-source-nova-conductor
+kolla/${DISTRO}-source-nova-ssh
+kolla/${DISTRO}-source-nova-novncproxy
+kolla/${DISTRO}-source-nova-scheduler
+kolla/${DISTRO}-source-placement-api
+kolla/${DISTRO}-source-openvswitch-vswitchd
+kolla/${DISTRO}-source-openvswitch-db-server
+kolla/${DISTRO}-source-nova-libvirt
+kolla/${DISTRO}-source-memcached
+kolla/${DISTRO}-source-rabbitmq
+kolla/${DISTRO}-source-chrony
+kolla/${DISTRO}-source-heat-api
+kolla/${DISTRO}-source-heat-api-cfn
+kolla/${DISTRO}-source-heat-engine
+kolla/${DISTRO}-source-horizon
+kolla/${DISTRO}-source-kibana
+kolla/${DISTRO}-source-elasticsearch
+kolla/${DISTRO}-source-elasticsearch-curator
+kolla/${DISTRO}-source-barbican-base
+kolla/${DISTRO}-source-barbican-api
+kolla/${DISTRO}-source-barbican-worker
+kolla/${DISTRO}-source-barbican-keystone-listener
+kolla/${DISTRO}-source-magnum-base
+kolla/${DISTRO}-source-magnum-api
+kolla/${DISTRO}-source-magnum-conductor
+kolla/${DISTRO}-source-prometheus-alertmanager
+kolla/${DISTRO}-source-prometheus-v2-server
+kolla/${DISTRO}-source-prometheus-server
+kolla/${DISTRO}-source-prometheus-cadvisor
+kolla/${DISTRO}-source-prometheus-haproxy-exporter
+kolla/${DISTRO}-source-prometheus-mtail
+kolla/${DISTRO}-source-prometheus-memcached-exporter
+kolla/${DISTRO}-source-prometheus-blackbox-exporter
+kolla/${DISTRO}-source-prometheus-node-exporter
+kolla/${DISTRO}-source-prometheus-elasticsearch-exporter
+kolla/${DISTRO}-source-prometheus-mysqld-exporter
+kolla/${DISTRO}-source-prometheus-openstack-exporter
+kolla/${DISTRO}-source-grafana
+kolla/${DISTRO}-source-cinder-scheduler
+kolla/${DISTRO}-source-cinder-volume
+kolla/${DISTRO}-source-cinder-backup
+kolla/${DISTRO}-source-cinder-api
+kolla/${DISTRO}-source-ovn-controller
+kolla/${DISTRO}-source-ovn-northd
+kolla/${DISTRO}-source-ovn-nb-db-server
+kolla/${DISTRO}-source-ovn-sb-db-server
+kolla/${DISTRO}-source-bifrost-deploy"
 
 for image in $images; do
     sudo docker pull $image:$tag
