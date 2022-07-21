@@ -30,7 +30,7 @@ variable "image_user" {
 
 variable "lab_count" {
   description = "Number of labs"
-  default     = "2"
+  default     = "1"
 }
 
 variable "lab_data_vol" {
@@ -45,6 +45,6 @@ variable "lab_net_ipv4" {
 
 variable "lab_prefix" {
   description = "prefix to add to all hosts created under this deployment"
-  default     = "kayobe"
+  default     = "kayobe-skao"
 }
 

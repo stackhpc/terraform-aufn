@@ -32,7 +32,7 @@ resource "null_resource" "registry" {
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = openstack_compute_floatingip_associate_v2.registry.floating_ip
+    host                = openstack_compute_instance_v2.registry.network.0.fixed_ip_v4
   }
 
   triggers = {
@@ -74,7 +74,7 @@ resource "null_resource" "lab" {
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = openstack_compute_floatingip_associate_v2.lab[count.index].floating_ip
+    host                = openstack_compute_instance_v2.lab[count.index].network.0.fixed_ip_v4
   }
 
   triggers = {
