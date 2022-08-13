@@ -1,16 +1,16 @@
 variable "lab_flavor" {
   description = "Lab instance type"
-  default     = "baremetal"
+  default     = "aufn"
 }
 
 variable "bastion_flavor" {
   description = "Bastion instance type"
-  default     = "general.v1.tiny"
+  default     = "m1.tiny"
 }
 
 variable "registry_flavor" {
   description = "Registry instance type"
-  default     = "general.v1.medium"
+  default     = "m1.small"
 }
 
 variable "registry_data_vol" {
@@ -20,7 +20,7 @@ variable "registry_data_vol" {
 
 variable "image_name" {
   description = "Lab software image base"
-  default     = "CentOS-stream8"
+  default     = "CentOS8-stream"
 }
 
 variable "image_user" {
@@ -40,11 +40,11 @@ variable "lab_data_vol" {
 
 variable "lab_net_ipv4" {
   description = "Network for lab"
-  default     = "aufn-ipv4-vlan"
+  default     = "aufn"
 }
 
 variable "lab_prefix" {
   description = "prefix to add to all hosts created under this deployment"
-  default     = "kayobe-skao"
+  default     = "kayobe-mtc"
 }
 
