@@ -30,7 +30,7 @@ variable "image_user" {
 
 variable "lab_count" {
   description = "Number of labs"
-  default     = "1"
+  default     = "10"
 }
 
 variable "lab_data_vol" {
