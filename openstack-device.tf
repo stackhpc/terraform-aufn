@@ -110,6 +110,15 @@ resource "openstack_compute_instance_v2" "lab" {
   flavor_name     = var.lab_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
 
+  block_device {
+    uuid                  = data.openstack_images_image_v2.labimage.id
+    source_type           = "image"
+    volume_size           = var.lab_data_vol
+    boot_index            = 0
+    destination_type      = "volume"
+    delete_on_termination = true
+  }
+
   network {
     name = var.lab_net_ipv4
   }

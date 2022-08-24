@@ -35,7 +35,7 @@ variable "lab_count" {
 
 variable "lab_data_vol" {
   description = "Lab data volume in GB"
-  default = "200"
+  default = "1000"
 }
 
 variable "lab_net_ipv4" {
