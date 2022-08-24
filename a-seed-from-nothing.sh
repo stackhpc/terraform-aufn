@@ -74,13 +74,6 @@ then
     cat $keyfile.pub | sudo -u ${CLOUD_USER} tee -a ${CLOUD_USER_DIR}/.ssh/authorized_keys
     sudo chmod 0600 ${CLOUD_USER_DIR}/.ssh/authorized_keys
     sudo chown ${CLOUD_USER}.${CLOUD_USER} ${CLOUD_USER_DIR}/.ssh/authorized_keys
-if ! sudo grep -q "$(< $keyfile.pub)" ~centos/.ssh/authorized_keys
-then
-    echo "Authorizing keypair for centos user"
-    sudo install -d -o centos -g centos -m 0700 ~centos/.ssh
-    cat $keyfile.pub | sudo -u centos tee -a ~centos/.ssh/authorized_keys
-    sudo chmod 0600 ~centos/.ssh/authorized_keys
-    sudo chown centos.centos ~centos/.ssh/authorized_keys
 fi
 
 # Clone Kayobe.
