@@ -17,6 +17,9 @@ then
     dpkg -l ufw && sudo systemctl is-enabled ufw && sudo systemctl stop ufw && sudo systemctl disable ufw
 else
     rpm -q firewalld && sudo systemctl is-enabled firewalld && sudo systemctl stop firewalld && sudo systemctl disable firewalld
+    sudo sed -i -e 's/^mirrorlist/#mirrorlist/g' \
+    -e 's/^#baseurl/baseurl/g' \
+    -e 's/mirror\.centos\.org/uk.mirror.nsec.pt/g' /etc/yum.repos.d/CentOS-Stream-*.repo
 fi
 
 # Disable SELinux.

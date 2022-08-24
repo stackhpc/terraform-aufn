@@ -20,6 +20,9 @@ then
     sudo systemctl enable docker
     sudo systemctl start docker
 else
+    sudo sed -i -e 's/^mirrorlist/#mirrorlist/g' \
+    -e 's/^#baseurl/baseurl/g' \
+    -e 's/mirror\.centos\.org/uk.mirror.nsec.pt/g' /etc/yum.repos.d/CentOS-Stream-*.repo
     # Install and start docker
     sudo dnf install -y 'dnf-command(config-manager)'
     cat << "EOF" | sudo tee /etc/yum.repos.d/docker-ce.repo
