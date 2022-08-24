@@ -1,6 +1,13 @@
-test
-terraform.tfvars
-terraform.tfstate.backup
-.terraform/
-.terraform.tfstate.lock
-.terraform.tfstate.lock.info
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Exclude all .tfvars files
+*.tfvars
+*.tfvars.json
+
+# SSH Keys
+*.pem
