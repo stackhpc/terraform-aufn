@@ -48,3 +48,6 @@ variable "lab_prefix" {
   default     = "kayobe-mtc"
 }
 
+variable "lab_fip" {
+  default     = "10.136.81.138"
+}

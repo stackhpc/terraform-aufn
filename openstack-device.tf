@@ -3,6 +3,50 @@ resource "openstack_compute_keypair_v2" "ufn_lab_key" {
   public_key = tls_private_key.default.public_key_openssh
 }
 
+resource "openstack_compute_instance_v2" "bastion" {
+  name            = "${var.lab_prefix}-bastion"
+  image_name      = var.image_name
+  flavor_name     = var.bastion_flavor
+  key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
+  security_groups = ["default"]
+  network {
+    name = var.lab_net_ipv4
+  }
+  timeouts {
+    create = "30m"
+  }
+}
+
+resource "openstack_compute_floatingip_associate_v2" "bastion" {
+  floating_ip = var.lab_fip
+  instance_id = openstack_compute_instance_v2.bastion.id
+}
+
+resource "null_resource" "bastion" {
+  connection {
+    host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
+    user        = "centos"
+    private_key = tls_private_key.default.private_key_pem
+    agent       = false
+    timeout     = "300s"
+  }
+
+  triggers = {
+    ssh_config  = templatefile("ssh-config.tpl", local.template)
+  }
+
+  provisioner "file" {
+    content     = self.triggers.ssh_config
+    destination = "/tmp/ssh_config"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p ~/.ssh; chmod 0700 ~/.ssh; cp /tmp/ssh_config ~/.ssh/config",
+    ]
+  }
+}
+
 resource "openstack_blockstorage_volume_v2" "registry_data" {
   name = "${var.lab_prefix}-registry"
   size = var.registry_data_vol
@@ -28,6 +72,9 @@ resource "openstack_compute_volume_attach_v2" "attached" {
 
 resource "null_resource" "registry" {
   connection {
+    bastion_user        = var.image_user
+    bastion_private_key = tls_private_key.default.private_key_pem
+    bastion_host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
     user                = var.image_user
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
@@ -70,6 +117,9 @@ resource "null_resource" "lab" {
   count = var.lab_count
 
   connection {
+    bastion_user        = var.image_user
+    bastion_private_key = tls_private_key.default.private_key_pem
+    bastion_host        = openstack_compute_floatingip_associate_v2.bastion.floating_ip
     user                = var.image_user
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
