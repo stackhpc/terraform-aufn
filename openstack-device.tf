@@ -47,12 +47,12 @@ resource "null_resource" "bastion" {
   }
 }
 
-resource "openstack_blockstorage_volume_v2" "registry_data" {
-  name = "${var.lab_prefix}-registry"
-  size = var.registry_data_vol
+data "openstack_images_image_v2" "labimage" {
+  name          = var.image_name
+  most_recent   = true # Limits search to the most recent
 }
 
-# Boot instance with volume attached for Docker Registry
+# Boot volume based instance for Docker Registry
 resource "openstack_compute_instance_v2" "registry" {
   name            = "${var.lab_prefix}-registry"
   image_name      = var.image_name
@@ -60,14 +60,18 @@ resource "openstack_compute_instance_v2" "registry" {
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
   security_groups = ["default"]
 
+  block_device {
+    uuid                  = data.openstack_images_image_v2.labimage.id
+    source_type           = "image"
+    volume_size           = var.registry_data_vol
+    boot_index            = 0
+    destination_type      = "volume"
+    delete_on_termination = false
+  }
+
   network {
     name = var.lab_net_ipv4
   }
-}
-
-resource "openstack_compute_volume_attach_v2" "attached" {
-  instance_id = "${openstack_compute_instance_v2.registry.id}"
-  volume_id   = "${openstack_blockstorage_volume_v2.registry_data.id}"
 }
 
 resource "null_resource" "registry" {
