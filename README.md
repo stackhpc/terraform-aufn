@@ -11,21 +11,8 @@ containerised OpenStack to bare metal.
 
 # Instructions for deployment
 
-After cloning this repo,
-
-    cd a-universe-from-nothing-packet
-    echo packet_auth_token=\"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456\" >> terraform.tfvars
-    echo packet_project_id=\"12345678-90AB-CDEF-GHIJ-KLMNOPQR\" >> terraform.tfvars
-    echo deploy_prefix=\"kayobe\" >> terraform.tfvars
-    echo packet_facility=\"ewr1\" >> terraform.tfvars
-    echo lab_count=25 >> terraform.tfvars
-    echo packet_facility_alt=\"nrt1\" >> terraform.tfvars
-    echo lab_count_alt=25 >> terraform.tfvars
-
-Note that the `packet_auth_token` needs to be the user auth token, not the
-project auth token, otherwise you will hit strange errors. This can be
-obtained by clicking the user icon on the top right hand corner on
-https://app.packet.net and choose API Keys in the menu.
+After cloning this repo, source the regular OpenStack rc file with necessary
+vars for accessing the *aufn* project.
 
 Next up is the `terraform` bit assuming it is already installed:
 
