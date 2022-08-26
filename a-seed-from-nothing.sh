@@ -106,12 +106,7 @@ cd ~/kayobe
 ./dev/seed-hypervisor-deploy.sh
 
 # Deploy a seed VM.
-# NOTE: This should work the first time because the packet configuration uses a
-# custom docker registry.  However, there are sometimes issues with Docker starting up on the seed (FIXME)
-if ! ./dev/seed-deploy.sh; then
-    # Deploy a seed VM. Should work this time.
-    ./dev/seed-deploy.sh
-fi
+./dev/seed-deploy.sh
 
 # Duration
 duration=$SECONDS
