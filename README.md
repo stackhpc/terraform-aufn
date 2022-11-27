@@ -1,8 +1,19 @@
-# Kayobe on Packet
+# Terraform for "A Universe From Nothing" Lab
+
+Terraform for the following configuration:
+
+* OpenStack virtualised instances
+* Cinder volumes for instance storage
+* Floating IPs for networking
 
 This Terraform deployment reproduces the environment for [a universe from
 nothing](https://github.com/stackhpc/a-universe-from-nothing) workshop on
-Packet.
+OpenStack infrastructure.
+
+## Prerequisites
+
+* A Neutron network the instances can attach to, with router
+* Plenty of resource quota
 
 ## Software Components
 
@@ -11,21 +22,8 @@ containerised OpenStack to bare metal.
 
 # Instructions for deployment
 
-After cloning this repo,
-
-    cd a-universe-from-nothing-packet
-    echo packet_auth_token=\"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456\" >> terraform.tfvars
-    echo packet_project_id=\"12345678-90AB-CDEF-GHIJ-KLMNOPQR\" >> terraform.tfvars
-    echo deploy_prefix=\"kayobe\" >> terraform.tfvars
-    echo packet_facility=\"ewr1\" >> terraform.tfvars
-    echo lab_count=25 >> terraform.tfvars
-    echo packet_facility_alt=\"nrt1\" >> terraform.tfvars
-    echo lab_count_alt=25 >> terraform.tfvars
-
-Note that the `packet_auth_token` needs to be the user auth token, not the
-project auth token, otherwise you will hit strange errors. This can be
-obtained by clicking the user icon on the top right hand corner on
-https://app.packet.net and choose API Keys in the menu.
+After cloning this repo, source the regular OpenStack rc file with necessary
+vars for accessing the *A Universe From Nothing* lab project.
 
 Next up is the `terraform` bit assuming it is already installed:
 

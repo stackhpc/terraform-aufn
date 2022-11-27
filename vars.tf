@@ -18,6 +18,10 @@ variable "registry_data_vol" {
   default = "100"
 }
 
+variable "image_id" {
+  description = "Boot from volume requires ID of image"
+}
+
 variable "image_name" {
   description = "Lab software image base"
   default     = "CentOS-stream8"
@@ -45,6 +49,6 @@ variable "lab_net_ipv4" {
 
 variable "lab_prefix" {
   description = "prefix to add to all hosts created under this deployment"
-  default     = "kayobe-skao"
+  default     = "aufn"
 }
 

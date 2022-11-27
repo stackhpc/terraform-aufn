@@ -3,27 +3,34 @@ resource "openstack_compute_keypair_v2" "ufn_lab_key" {
   public_key = tls_private_key.default.public_key_openssh
 }
 
-resource "openstack_blockstorage_volume_v2" "registry_data" {
-  name = "${var.lab_prefix}-registry"
-  size = var.registry_data_vol
-}
-
 # Boot instance with volume attached for Docker Registry
 resource "openstack_compute_instance_v2" "registry" {
   name            = "${var.lab_prefix}-registry"
-  image_name      = var.image_name
   flavor_name     = var.registry_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
   security_groups = ["default"]
+
+  block_device {
+    uuid                  = var.image_id
+    source_type           = "image"
+    volume_size           = var.registry_data_vol
+    boot_index            = 0
+    destination_type      = "volume"
+    delete_on_termination = true
+  }
 
   network {
     name = var.lab_net_ipv4
   }
 }
 
-resource "openstack_compute_volume_attach_v2" "attached" {
-  instance_id = "${openstack_compute_instance_v2.registry.id}"
-  volume_id   = "${openstack_blockstorage_volume_v2.registry_data.id}"
+resource "openstack_compute_floatingip_v2" "registry" {
+  pool = "external"
+}
+
+resource "openstack_compute_floatingip_associate_v2" "registry" {
+  floating_ip = openstack_compute_floatingip_v2.registry.address
+  instance_id = openstack_compute_instance_v2.registry.id
 }
 
 resource "null_resource" "registry" {
@@ -32,7 +39,7 @@ resource "null_resource" "registry" {
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = openstack_compute_instance_v2.registry.network.0.fixed_ip_v4
+    host                = openstack_compute_floatingip_associate_v2.registry.floating_ip
   }
 
   triggers = {
@@ -55,15 +62,35 @@ resource "openstack_compute_instance_v2" "lab" {
 
   count           = var.lab_count
   name            = format("%s-lab-%02d", var.lab_prefix, count.index)
-  image_name      = var.image_name
   flavor_name     = var.lab_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
+
+  block_device {
+    uuid                  = var.image_id
+    source_type           = "image"
+    volume_size           = var.lab_data_vol
+    boot_index            = 0
+    destination_type      = "volume"
+    delete_on_termination = true
+  }
 
   network {
     name = var.lab_net_ipv4
   }
 
-  depends_on = [openstack_compute_keypair_v2.ufn_lab_key]
+  depends_on = [openstack_compute_keypair_v2.ufn_lab_key, null_resource.registry]
+}
+
+resource "openstack_compute_floatingip_v2" "lab" {
+  count = var.lab_count
+  pool = "external"
+}
+
+resource "openstack_compute_floatingip_associate_v2" "lab" {
+  count = var.lab_count
+
+  floating_ip = openstack_compute_floatingip_v2.lab[count.index].address
+  instance_id = openstack_compute_instance_v2.lab[count.index].id
 }
 
 resource "null_resource" "lab" {
@@ -74,7 +101,7 @@ resource "null_resource" "lab" {
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = openstack_compute_instance_v2.lab[count.index].network.0.fixed_ip_v4
+    host                = openstack_compute_floatingip_associate_v2.lab[count.index].floating_ip
   }
 
   triggers = {
