@@ -5,7 +5,7 @@ Host ${bastion.name}
 
 Host ${registry.name}
   HostName ${registry.ip}
-  User clous-user
+  User cloud-user
   ProxyJump ${bastion.name}
 
 %{ for name, ip in zipmap(labs.names, labs.ips) ~}
