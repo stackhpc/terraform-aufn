@@ -1,11 +1,11 @@
 Host ${bastion.name}
   HostName ${bastion.ip}
-  User centos
+  User cloud-user
   ForwardAgent yes
 
 Host ${registry.name}
   HostName ${registry.ip}
-  User centos
+  User cloud-user
   ProxyJump ${bastion.name}
 
 %{ for name, ip in zipmap(labs.names, labs.ips) ~}

@@ -1,6 +1,13 @@
 variable "lab_flavor" {
   description = "Lab instance type"
-  default     = "baremetal"
+  default     = "baremetal-32"
+}
+
+# Note: If using baremetals, this should be set to false.
+# Can be set to true to give VMs more storage space.
+variable "boot_labs_from_volume" {
+  description = "Whether or not to boot labs from volume."
+  default     = "false"
 }
 
 variable "bastion_flavor" {
@@ -29,7 +36,7 @@ variable "image_name" {
 
 variable "image_user" {
   description = "Lab software image cloud user"
-  default     = "centos"
+  default     = "cloud-user"
 }
 
 variable "lab_count" {
@@ -52,3 +59,18 @@ variable "lab_prefix" {
   default     = "aufn"
 }
 
+variable "allocate_floating_ips" {
+  description = "Whether or not floating ips should be allocated to lab instances and the registry"
+  default     = "false"
+}
+
+# Remember to set a floating IP if you're using a bastion
+variable "create_bastion" {
+  description = "Whether or not to create a bastion instance"
+  default     = "false"
+}
+
+variable "bastion_floating_ip" {
+  description = "Bastion floating IP"
+  default     = "0.0.0.0"
+}
