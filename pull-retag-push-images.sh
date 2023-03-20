@@ -41,7 +41,7 @@ if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
     sudo docker run -d -p 4000:5000 --restart=always --name registry registry
 fi
 
-tag=${1:-wallaby}
+tag=${1:-yoga}
 images="kolla/${DISTRO}-source-kolla-toolbox
 kolla/${DISTRO}-source-haproxy
 kolla/${DISTRO}-source-mariadb-server
@@ -70,7 +70,6 @@ kolla/${DISTRO}-source-openvswitch-db-server
 kolla/${DISTRO}-source-nova-libvirt
 kolla/${DISTRO}-source-memcached
 kolla/${DISTRO}-source-rabbitmq
-kolla/${DISTRO}-source-chrony
 kolla/${DISTRO}-source-heat-api
 kolla/${DISTRO}-source-heat-api-cfn
 kolla/${DISTRO}-source-heat-engine
@@ -87,7 +86,6 @@ kolla/${DISTRO}-source-magnum-api
 kolla/${DISTRO}-source-magnum-conductor
 kolla/${DISTRO}-source-prometheus-alertmanager
 kolla/${DISTRO}-source-prometheus-v2-server
-kolla/${DISTRO}-source-prometheus-server
 kolla/${DISTRO}-source-prometheus-cadvisor
 kolla/${DISTRO}-source-prometheus-haproxy-exporter
 kolla/${DISTRO}-source-prometheus-mtail
@@ -110,8 +108,8 @@ kolla/${DISTRO}-source-bifrost-deploy"
 
 for image in $images; do
     sudo docker pull $image:$tag
-    sudo docker tag docker.io/$image:$tag localhost:4000/$image:$tag
-    sudo docker push localhost:4000/$image:$tag
+    sudo docker tag docker.io/$image:$tag localhost:4000/openstack.$image:$tag
+    sudo docker push localhost:4000/openstack.$image:$tag
     sudo docker image remove docker.io/$image:$tag
 done
 
