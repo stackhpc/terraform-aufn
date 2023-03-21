@@ -25,6 +25,10 @@ containerised OpenStack to bare metal.
 After cloning this repo, source the regular OpenStack rc file with necessary
 vars for accessing the *A Universe From Nothing* lab project.
 
+There are a various variables available for configuration. These can be seen
+in `vars.tf`, and can be set in `terraform.tfvars` (see sample file
+`terraform.tfvars.sample`).
+
 Next up is the `terraform` bit assuming it is already installed:
 
     terraform init
@@ -33,7 +37,7 @@ Next up is the `terraform` bit assuming it is already installed:
 
 To reprovision a lab machine:
 
-    terraform taint packet_device.lab.#
+    terraform taint openstack_compute_instance_v2.#
     terraform apply -auto-approve
 
 where `#` is the lab index which can be obtained from the web UI.
@@ -50,7 +54,8 @@ SSH in to your lab instance by running and entering the provided password:
 
     ssh lab@<lab-ip-address> -o PreferredAuthentications=password
 
-It is recommeded that you run `passwd` immediately to change the default password.
+The default password is the id of the lab instance. As such, it is recommeded
+that you run `passwd` immediately to change the default password.
 
 ## Nested virtualisation
 
