@@ -42,7 +42,8 @@ if [ ! "$(sudo docker ps -q -f name=registry)" ]; then
 fi
 
 tag=${1:-yoga}
-images="kolla/${DISTRO}-source-kolla-toolbox
+images="kolla/${DISTRO}-source-bifrost-deploy
+kolla/${DISTRO}-source-kolla-toolbox
 kolla/${DISTRO}-source-haproxy
 kolla/${DISTRO}-source-mariadb-server
 kolla/${DISTRO}-source-mariadb-clustercheck
@@ -95,6 +96,7 @@ kolla/${DISTRO}-source-prometheus-node-exporter
 kolla/${DISTRO}-source-prometheus-elasticsearch-exporter
 kolla/${DISTRO}-source-prometheus-mysqld-exporter
 kolla/${DISTRO}-source-prometheus-openstack-exporter
+kolla/${DISTRO}-source-prometheus-libvirt-exporter
 kolla/${DISTRO}-source-grafana
 kolla/${DISTRO}-source-cinder-scheduler
 kolla/${DISTRO}-source-cinder-volume
@@ -103,8 +105,7 @@ kolla/${DISTRO}-source-cinder-api
 kolla/${DISTRO}-source-ovn-controller
 kolla/${DISTRO}-source-ovn-northd
 kolla/${DISTRO}-source-ovn-nb-db-server
-kolla/${DISTRO}-source-ovn-sb-db-server
-kolla/${DISTRO}-source-bifrost-deploy"
+kolla/${DISTRO}-source-ovn-sb-db-server"
 
 for image in $images; do
     sudo docker pull $image:$tag
