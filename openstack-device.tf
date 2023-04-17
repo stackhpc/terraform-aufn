@@ -28,7 +28,7 @@ resource "null_resource" "bastion" {
   count = var.create_bastion ? 1 : 0
   connection {
     host        = openstack_compute_floatingip_associate_v2.bastion[0].floating_ip
-    user        = "centos"
+    user        = var.image_user
     private_key = tls_private_key.default.private_key_pem
     agent       = false
     timeout     = "300s"
