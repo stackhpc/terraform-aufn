@@ -27,7 +27,8 @@ sudo setenforce 0
 # Useful packages
 if [[ "${CLOUD_USER}" = "ubuntu" ]]
 then
-    sudo apt install -y git tmux lvm2
+    sudo apt update
+    sudo apt install -y git tmux lvm2 iptables
 else
     sudo dnf install -y git tmux lvm2
 fi
