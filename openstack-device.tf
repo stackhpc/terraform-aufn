@@ -28,7 +28,7 @@ resource "null_resource" "bastion" {
   count = var.create_bastion ? 1 : 0
   connection {
     host        = openstack_compute_floatingip_associate_v2.bastion[0].floating_ip
-    user        = "centos"
+    user        = var.image_user
     private_key = tls_private_key.default.private_key_pem
     agent       = false
     timeout     = "300s"
@@ -84,6 +84,9 @@ resource "openstack_compute_floatingip_associate_v2" "registry" {
 
 resource "null_resource" "registry" {
   connection {
+    bastion_user        = var.create_bastion ? var.image_user : null
+    bastion_private_key = var.create_bastion ? tls_private_key.default.private_key_pem : null
+    bastion_host        = var.create_bastion ? openstack_compute_floatingip_associate_v2.bastion[0].floating_ip : null
     user                = var.image_user
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
@@ -131,6 +134,10 @@ resource "openstack_compute_instance_v2" "lab" {
     name = var.lab_net_ipv4
   }
 
+  timeouts {
+    create = "30m"
+  }
+
   depends_on = [openstack_compute_keypair_v2.ufn_lab_key, null_resource.registry]
 }
 
@@ -150,6 +157,9 @@ resource "null_resource" "lab" {
   count = var.lab_count
 
   connection {
+    bastion_user        = var.create_bastion ? var.image_user : null
+    bastion_private_key = var.create_bastion ? tls_private_key.default.private_key_pem : null
+    bastion_host        = var.create_bastion ? openstack_compute_floatingip_associate_v2.bastion[0].floating_ip : null
     user                = var.image_user
     private_key         = tls_private_key.default.private_key_pem
     agent               = false

@@ -27,7 +27,8 @@ sudo setenforce 0
 # Useful packages
 if [[ "${CLOUD_USER}" = "ubuntu" ]]
 then
-    sudo apt install -y git tmux lvm2
+    sudo apt update
+    sudo apt install -y git tmux lvm2 iptables
 else
     sudo dnf install -y git tmux lvm2
 fi
@@ -108,10 +109,14 @@ then
 neutron_plugin_agent: "ovn"
 neutron_ovn_dhcp_agent: "yes"
 EOF
-    cat <<EOF | sudo tee -a config/src/kayobe-config/etc/kayobe/kolla/globals.yml
+    cat <<EOF | sudo tee -a config/src/kayobe-config/etc/kayobe/bifrost.yml
 kolla_bifrost_extra_kernel_options:
   - "console=ttyS0"
+EOF
+    cat <<EOF | sudo tee -a config/src/kayobe-config/etc/kayobe/kolla.yml
 kolla_enable_ovn: yes
+EOF
+    cat <<EOF | sudo tee -a config/src/kayobe-config/etc/kayobe/neutron.yml
 kolla_neutron_ml2_type_drivers:
   - geneve
   - vlan
