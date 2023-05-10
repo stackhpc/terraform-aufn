@@ -103,7 +103,7 @@ cd ~/kayobe
 ./dev/install-dev.sh
 
 # Enable OVN flags
-if $ENABLE_OVN
+if [[ "$ENABLE_OVN" = "true" ]]
 then
     cat <<EOF | sudo tee config/src/kayobe-config/etc/kayobe/aufn-ovn.yml
 neutron_plugin_agent: "ovn"
@@ -117,6 +117,8 @@ EOF
 kolla_enable_ovn: yes
 EOF
     cat <<EOF | sudo tee -a config/src/kayobe-config/etc/kayobe/neutron.yml
+kolla_neutron_ml2_mechanism_drivers:
+  - ovn
 kolla_neutron_ml2_type_drivers:
   - geneve
   - vlan
@@ -125,6 +127,11 @@ kolla_neutron_ml2_tenant_network_types:
   - geneve
   - vlan
   - flat
+EOF
+    cat <<EOF | sudo tee -a config/src/kayobe-config/etc/kayobe/kolla/globals.yml
+# Enable OVN driver integration
+neutron_plugin_agent: "ovn"
+neutron_ovn_distributed_fip: "yes"
 EOF
 fi
 
