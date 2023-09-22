@@ -105,10 +105,6 @@ cd ~/kayobe
 # Enable OVN flags
 if $ENABLE_OVN
 then
-    cat <<EOF | sudo tee config/src/kayobe-config/etc/kayobe/aufn-ovn.yml
-neutron_plugin_agent: "ovn"
-neutron_ovn_dhcp_agent: "yes"
-EOF
     cat <<EOF | sudo tee -a config/src/kayobe-config/etc/kayobe/bifrost.yml
 kolla_bifrost_extra_kernel_options:
   - "console=ttyS0"
