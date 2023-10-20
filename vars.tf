@@ -64,6 +64,11 @@ variable "allocate_floating_ips" {
   default     = "false"
 }
 
+variable "floating_ip_external_net" {
+  description = "Network name to use for floating IP allocation"
+  default     = "external"
+}
+
 # Remember to set a floating IP if you're using a bastion
 variable "create_bastion" {
   description = "Whether or not to create a bastion instance"

@@ -30,26 +30,36 @@ then
     sudo apt update
     sudo apt install -y git tmux lvm2 iptables
 else
-    sudo dnf install -y git tmux lvm2
+    sudo dnf install -y git tmux lvm2 patch
 fi
 
 # Work around connectivity issues seen while configuring this node as seed
 # hypervisor with Kayobe
-if [[ "${CLOUD_USER}" = "cloud-user" ]]
-then
-    sudo dnf install -y network-scripts
-    sudo rm -f /etc/sysconfig/network-scripts/ifcfg-ens3*
-fi
 cat <<EOF | sudo tee /etc/sysctl.d/70-ipv6.conf
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 EOF
 sudo sysctl --load /etc/sysctl.d/70-ipv6.conf
 
+# CentOS Stream 8 requires network-scripts.  Rocky Linux 9 and onwards use NetworkManager.
 if [[ "${CLOUD_USER}" = "cloud-user" ]]
 then
-    sudo systemctl is-active NetworkManager && (sudo systemctl disable NetworkManager; sudo systemctl stop NetworkManager)
-    sudo systemctl is-active network || (sudo systemctl enable network; sudo pkill dhclient; sudo systemctl start network)
+    case $(grep -o "[89]\.[0-9]" /etc/redhat-release) in
+      "8.*")
+        sudo dnf install -y network-scripts
+        sudo rm -f /etc/sysconfig/network-scripts/ifcfg-ens3*
+        sudo systemctl is-active NetworkManager && (sudo systemctl disable NetworkManager; sudo systemctl stop NetworkManager)
+        sudo systemctl is-active network || (sudo systemctl enable network; sudo pkill dhclient; sudo systemctl start network)
+        ;;
+      "9.*")
+        # No network-scripts for RL9
+        sudo systemctl is-active NetworkManager || (sudo systemctl enable NetworkManager; sudo systemctl start NetworkManager)
+        ;;
+      "*")
+        echo "Could not recognise OS release $(< /etc/redhat-release)"
+        exit -1
+        ;;
+    esac
 fi
 
 # Exit on error

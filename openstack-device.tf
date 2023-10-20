@@ -73,7 +73,7 @@ resource "openstack_compute_instance_v2" "registry" {
 
 resource "openstack_compute_floatingip_v2" "registry" {
   count = var.allocate_floating_ips ? 1 : 0
-  pool = "external"
+  pool = var.floating_ip_external_net
 }
 
 resource "openstack_compute_floatingip_associate_v2" "registry" {
@@ -143,7 +143,7 @@ resource "openstack_compute_instance_v2" "lab" {
 
 resource "openstack_compute_floatingip_v2" "lab" {
   count = var.allocate_floating_ips ? var.lab_count : 0
-  pool = "external"
+  pool = var.floating_ip_external_net
 }
 
 resource "openstack_compute_floatingip_associate_v2" "lab" {
