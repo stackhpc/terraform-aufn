@@ -105,7 +105,18 @@ kolla/${DISTRO}-source-cinder-api
 kolla/${DISTRO}-source-ovn-controller
 kolla/${DISTRO}-source-ovn-northd
 kolla/${DISTRO}-source-ovn-nb-db-server
-kolla/${DISTRO}-source-ovn-sb-db-server"
+kolla/${DISTRO}-source-ovn-sb-db-server
+kolla/${DISTRO}-source-dnsmasq
+kolla/${DISTRO}-source-ironic-api
+kolla/${DISTRO}-source-ironic-conductor
+kolla/${DISTRO}-source-ironic-inspector
+kolla/${DISTRO}-source-ironic-neutron-agent
+kolla/${DISTRO}-source-ironic-pxe
+kolla/${DISTRO}-source-nova-compute-ironic
+kolla/${DISTRO}-source-manila-api
+kolla/${DISTRO}-source-manila-share
+kolla/${DISTRO}-source-manila-data
+kolla/${DISTRO}-source-manila-scheduler"
 
 for image in $images; do
     sudo docker pull $image:$tag
