@@ -6,7 +6,7 @@ set -e
 SECONDS=0
 
 # DISTRO: CentOS or Ubuntu?
-DISTRO=centos
+DISTRO=ubuntu
 
 if [[ "${DISTRO}" = "ubuntu" ]]
 then
@@ -25,7 +25,7 @@ else
     cat << "EOF" | sudo tee /etc/yum.repos.d/docker-ce.repo
 [docker-ce-stable]
 name=Docker CE Stable - $basearch
-baseurl=https://download.docker.com/linux/centos/8/$basearch/stable
+baseurl=https://download.docker.com/linux/centos/9/$basearch/stable
 enabled=1
 gpgcheck=1
 gpgkey=https://download.docker.com/linux/centos/gpg

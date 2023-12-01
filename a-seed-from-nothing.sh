@@ -4,7 +4,7 @@
 SECONDS=0
 
 # Cloud User: cloud-user (CentOS) or ubuntu?
-CLOUD_USER=cloud-user
+CLOUD_USER=ubuntu
 
 ENABLE_OVN=true
 
@@ -16,6 +16,7 @@ echo "[INFO] Given docker registry IP: $registry_ip"
 # Disable the firewall.
 if [[ "${CLOUD_USER}" = "ubuntu" ]]
 then
+    grep -q $HOSTNAME /etc/hosts || (echo "$(ip r | grep -o '^default via.*src [0-9.]*' | awk '{print $NF}') $HOSTNAME" | sudo tee -a /etc/hosts)
     dpkg -l ufw && sudo systemctl is-enabled ufw && sudo systemctl stop ufw && sudo systemctl disable ufw
 else
     rpm -q firewalld && sudo systemctl is-enabled firewalld && sudo systemctl stop firewalld && sudo systemctl disable firewalld
@@ -88,7 +89,8 @@ fi
 
 # Clone Kayobe.
 cd $HOME
-[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/yoga
+#[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/yoga
+[[ -d kayobe ]] || git clone https://github.com/oneswig/kayobe -b oneswig/yoga
 cd kayobe
 
 # Bump the provisioning time - it can be lengthy on virtualised storage
@@ -100,7 +102,8 @@ sed -i.bak 's%^[# ]*wait_active_timeout:.*%    wait_active_timeout: 5000%' ~/kay
 # Clone this Kayobe configuration.
 mkdir -p config/src
 cd config/src/
-[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/yoga kayobe-config
+#[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/yoga kayobe-config
+[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b yoga-XL kayobe-config
 
 # Set default registry name to the one we just created
 sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-config/etc/kayobe/docker.yml
@@ -144,6 +147,12 @@ if ! ./dev/seed-deploy.sh; then
     # Deploy a seed VM. Should work this time.
     ./dev/seed-deploy.sh
 fi
+
+# Run TENKS
+cd ~/kayobe
+source dev/environment-setup.sh
+export TENKS_CONFIG_PATH=config/src/kayobe-config/tenks.yml
+./dev/tenks-deploy-overcloud.sh ./tenks
 
 # Duration
 duration=$SECONDS
