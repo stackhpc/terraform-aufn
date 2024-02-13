@@ -20,14 +20,16 @@ then
     dpkg -l ufw && sudo systemctl is-enabled ufw && sudo systemctl stop ufw && sudo systemctl disable ufw
 else
     rpm -q firewalld && sudo systemctl is-enabled firewalld && sudo systemctl stop firewalld && sudo systemctl disable firewalld
-fi
 
-# Disable SELinux.
-sudo setenforce 0
+    # Disable SELinux.
+    sudo setenforce 0
+fi
 
 # Useful packages
 if [[ "${CLOUD_USER}" = "ubuntu" ]]
 then
+    # Avoid the interactive dialog prompting for service restart: set policy to leave services unchanged
+    echo "\$nrconf{restart} = 'l';" | sudo tee /etc/needrestart/conf.d/90-aufn.conf
     sudo apt update
     sudo apt install -y git tmux lvm2 iptables
 else
@@ -61,6 +63,19 @@ then
         exit -1
         ;;
     esac
+elif [[ "${CLOUD_USER}" = "ubuntu" ]]
+then
+    # Prepare for disabling of Netplan and enabling of systemd-networkd.
+    # Netplan has an interaction with systemd and cloud-init to populate
+    # systemd-networkd files, but ephemerally.  If /etc/systemd/network is
+    # empty and netplan config files are present in /run, copy them over.
+    persistent_netcfg=$(ls /etc/systemd/network)
+    ephemeral_netcfg=$(ls /run/systemd/network)
+    if [[ -z "$persistent_netcfg" && ! -z "$ephemeral_netcfg" ]]
+    then
+        echo "Creating persistent versions of Netplan ephemeral config"
+        sudo cp /run/systemd/network/* /etc/systemd/network
+    fi
 fi
 
 # Exit on error
@@ -89,8 +104,7 @@ fi
 
 # Clone Kayobe.
 cd $HOME
-#[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/yoga
-[[ -d kayobe ]] || git clone https://github.com/oneswig/kayobe -b oneswig/yoga
+[[ -d kayobe ]] || git clone https://opendev.org/openstack/kayobe.git -b stable/2023.1
 cd kayobe
 
 # Bump the provisioning time - it can be lengthy on virtualised storage
@@ -102,11 +116,10 @@ sed -i.bak 's%^[# ]*wait_active_timeout:.*%    wait_active_timeout: 5000%' ~/kay
 # Clone this Kayobe configuration.
 mkdir -p config/src
 cd config/src/
-#[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/yoga kayobe-config
-[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b yoga-XL kayobe-config
+[[ -d kayobe-config ]] || git clone https://github.com/stackhpc/a-universe-from-nothing.git -b stable/2023.1 kayobe-config
 
 # Set default registry name to the one we just created
-sed -i.bak 's/^docker_registry.*/docker_registry: '$registry_ip':4000/' kayobe-config/etc/kayobe/docker.yml
+sed -i.bak 's/^docker_registry:.*/docker_registry: '$registry_ip':4000/' kayobe-config/etc/kayobe/docker.yml
 
 # Configure host networking (bridge, routes & firewall)
 ./kayobe-config/configure-local-networking.sh
@@ -150,7 +163,6 @@ fi
 
 # Run TENKS
 cd ~/kayobe
-source dev/environment-setup.sh
 export TENKS_CONFIG_PATH=config/src/kayobe-config/tenks.yml
 ./dev/tenks-deploy-overcloud.sh ./tenks
 

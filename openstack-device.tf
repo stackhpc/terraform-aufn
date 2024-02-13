@@ -1,5 +1,5 @@
 resource "openstack_compute_keypair_v2" "ufn_lab_key" {
-  name       = "ufn_lab_key"
+  name       = "${var.lab_prefix}_lab_key"
   public_key = tls_private_key.default.public_key_openssh
 }
 
