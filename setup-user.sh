@@ -22,10 +22,6 @@ cat <<EOF | sudo tee /etc/motd
 
 Welcome to the Kayobe Lab!
 
-Immediately change the default password.
-
-    passwd
-
 Optionally, attach to a tmux session in case the connection drops:
 
     tmux

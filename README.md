@@ -57,8 +57,7 @@ SSH in to your lab instance by running and entering the provided password:
 
     ssh lab@<lab-ip-address> -o PreferredAuthentications=password
 
-The default password is the id of the lab instance. As such, it is recommended
-that you run `passwd` immediately to change the default password.
+The default password is the UUID of the lab instance.
 
 ## Nested virtualisation
 
