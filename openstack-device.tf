@@ -10,6 +10,7 @@ resource "openstack_compute_instance_v2" "bastion" {
   flavor_name     = var.bastion_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
   security_groups = ["default"]
+
   network {
     name = var.lab_net_ipv4
   }
@@ -95,7 +96,7 @@ resource "null_resource" "registry" {
   }
 
   triggers = {
-    pull_retag_push_images = file("pull-retag-push-images.sh")
+    pull_retag_push_images = file("${path.module}/pull-retag-push-images.sh")
   }
 
   provisioner "file" {
