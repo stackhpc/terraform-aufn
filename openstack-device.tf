@@ -95,7 +95,7 @@ resource "null_resource" "registry" {
   }
 
   triggers = {
-    pull_retag_push_images = file("pull-retag-push-images.sh")
+    pull_retag_push_images = file("${path.module}/pull-retag-push-images.sh")
   }
 
   provisioner "file" {
