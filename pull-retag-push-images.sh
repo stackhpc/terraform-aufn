@@ -40,9 +40,9 @@ fi
 registry=quay.io
 acct=openstack.kolla
 if type apt; then
-    tag=${1:-2023.1-ubuntu-jammy}
+    tag=${1:-2024.1-ubuntu-jammy}
 else
-    tag=${1:-2023.1-rocky-9}
+    tag=${1:-2024.1-rocky-9}
 fi
 images="bifrost-deploy
 kolla-toolbox
@@ -89,7 +89,6 @@ magnum-conductor
 prometheus-alertmanager
 prometheus-v2-server
 prometheus-cadvisor
-prometheus-haproxy-exporter
 prometheus-mtail
 prometheus-memcached-exporter
 prometheus-blackbox-exporter
