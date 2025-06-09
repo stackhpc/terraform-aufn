@@ -1,5 +1,5 @@
 output "labs" {
-  value = join("\n", formatlist("ssh %s # %s", openstack_compute_instance_v2.lab.*.name, openstack_compute_instance_v2.lab.*.id))
+  value = join("\n", formatlist("ssh %s %s # %s", openstack_compute_instance_v2.lab.*.access_ip_v4, openstack_compute_instance_v2.lab.*.name, openstack_compute_instance_v2.lab.*.id))
 }
 
 output "registry" {

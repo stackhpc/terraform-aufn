@@ -1,0 +1,391 @@
+---
+# 
+
+name: AUFN KIDDIN' ME?!
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: Type of deployment
+        type: choice
+        options:
+          - Test
+          - Deployment
+        default: Test
+      lab_vm_count:
+        description: Total number of Lab VMs to deploy
+        type: number
+        required: true
+        default: 2
+      reg_pwd: # When using in workflow use ::add-mask::$ to mask the password
+        description: Password for registry access
+        type: string
+        default: ""  # NOTE: This needs to be set at runtime via secrets
+      os_image:
+        description: Host OS image
+        type: choice
+        options:
+          - Ubuntu
+          - Rocky9
+        default: 'Rocky9'
+      aufn_branch:
+        description: Which branch of AUFN to use
+        type: string
+        default: smslab/2023.1
+      au_from_seed:
+        description: Run 'A Universe From Seed'?
+        type: boolean
+        default: false
+      debug_mode:
+        description: Keep Test up to debug?
+        type: boolean
+        default: false
+    secrets:
+      BASTION_TEST_PASSWORD:
+        required: true
+      CLOUDS_YAML:
+        required: true
+      OS_APPLICATION_CREDENTIAL_ID:
+        required: true
+      OS_APPLICATION_CREDENTIAL_SECRET:
+        required: true
+
+jobs:
+  set-up-vars:
+    name: Set up variables
+    environment: ${{ inputs.deployment_type }}
+    runs-on: Ubuntu-latest
+
+    steps:
+      - name: Install Package
+        uses: ConorMacBride/install-package@main
+        with:
+          apt: git unzip nodejs python3-pip python3-venv openssh-server openssh-client jq
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Start the SSH service
+        run: |
+          sudo /etc/init.d/ssh start
+
+      # - name: Check if 'Deployment' Lab is already deployed
+      #   uses: softwareforgood/check-artifact-v4-existence@v0
+      #   with:
+      #     name: ${{ inputs.deployment_type }}-terraform-artifacts
+      #
+      #  or use a ping command to check if the bastion is up
+      #
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Initialise terraform
+        run: terraform init
+
+      - name: Generate clouds.yaml
+        run: |
+          cat << EOF > clouds.yaml
+          ${{ secrets.CLOUDS_YAML }}
+          EOF
+
+      - name: Generate terraform.tfvars
+        run: |
+          cat << EOF > terraform.tfvars
+          lab_count     = ${{ inputs.lab_vm_count }}
+          lab_net_ipv4  = "${{ vars.LAB_NETWORK }}"
+          image_id      = "${{ env.LAB_IMAGE_ID }}"
+          image_name    = "${{ env.LAB_IMAGE_NAME }}"
+          lab_flavor    = "aufn.v1.large"
+          registry_flavor    = "general.v1.medium"
+          boot_labs_from_volume = true
+          image_user = "${{ env.LAB_IMAGE_USER }}"
+          allocate_floating_ips = false
+          create_bastion = "${{ env.LAB_CREATE_BASTION }}"
+          EOF
+
+          # Conditionally append bastion_floating_ip
+          if [ "${{ inputs.deployment_type }}" = "Deployment" ]; then
+            echo 'bastion_floating_ip = "185.45.78.149"' >> terraform.tfvars
+          fi
+        env:
+          LAB_IMAGE_ID: ${{ inputs.os_image == 'Rocky9' && vars.LAB_OS_IMAGE_ROCKY || inputs.os_image == 'Ubuntu' && vars.LAB_OS_IMAGE_UBUNTU  }}
+          LAB_IMAGE_NAME: ${{ inputs.os_image == 'Ubuntu' && 'Ubuntu-22.04' || inputs.os_image }}
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+          LAB_CREATE_BASTION: ${{ inputs.deployment_type == 'Deployment' && 'true' || 'false' }}
+
+      - name: Terraform Plan
+        run: terraform plan
+        env:
+          OS_CLOUD: ${{ vars.OS_CLOUD }}
+
+
+      - name: Terraform Apply
+        id: tf_apply
+        run: |
+          for attempt in $(seq 5); do
+              if terraform apply -auto-approve; then
+                  echo "Created infrastructure on attempt $attempt"
+                  exit 0
+              fi
+              echo "Failed to create infrastructure on attempt $attempt"
+              sleep 10
+              
+              # Need to add a check to see which part failed and then 
+              # taint and retry once more before declating failure
+              
+              terraform destroy -auto-approve
+              sleep 60
+          done
+          echo "Failed to create infrastructure after $attempt attempts"
+          exit 1
+        env:
+          OS_CLOUD: ${{ vars.OS_CLOUD }}
+
+      - name: Get Terraform outputs
+        id: tf_outputs
+        run: |
+          terraform output -json
+
+      - name: Write Terraform outputs
+        run: |
+          cat << EOF > tf-outputs.yml
+          ${{ steps.tf_outputs.outputs.stdout }}
+          EOF
+
+      - name: Write out Lab VMs info
+        run: |
+          terraform output -raw labs > ssh_list.txt
+
+      - name: Update bastion password authentication and set login password
+        run: |
+          echo "::add-mask::${{ env.reg_pwd_var }}"
+
+          ssh rocky@185.45.78.149 -i default.pem <<EOF
+            echo '${{ env.reg_pwd_var }}' | sudo passwd --stdin rocky
+            sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config.d/50-cloud-init.conf
+            sudo systemctl restart sshd
+          EOF
+        shell: bash
+        env:
+          reg_pwd_var: ${{ inputs.reg_pwd == '' && 'secrets.BASTION_TEST_PASSWORD' || inputs.reg_pwd }}
+
+      - name: Check connection to Lab VMs
+        run: |
+          bastion_ip=185.45.78.149 
+          bastion_key="default.pem"
+
+          while IFS= read -r line; do
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+            
+            echo "::add-mask::$password"
+            
+            echo "Connecting to $name at $ip via bastion..."
+
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
+              -o IdentityFile=$bastion_key \
+              "${LAB_IMAGE_USER}@${ip}" \
+              'echo "Connected to $(hostname)"'
+          done < ssh_list.txt
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+
+      - name: Validate lab VMs setup
+        run: |
+          bastion_ip=185.45.78.149
+          bastion_key="default.pem"
+          index=0
+          failed_indexes=()
+
+          while IFS= read -r line; do
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+            taint="false"
+            
+            echo "::add-mask::$password"
+            echo "Connecting to $name at $ip..."
+
+            # Run the compound remote commands
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
+              -o IdentityFile=$bastion_key \
+              "${LAB_IMAGE_USER}@${ip}" <<'EOF'
+
+              echo Checking 'virsh list --all'..."
+              output=$(sudo virsh list --all)
+              echo "$output"
+
+              if ! echo "$output" | grep -q 'seed.*running'; then echo "'seed' not running"; taint="true"; fi
+              if ! echo "$output" | grep -q 'compute0.*shut off'; then echo "'compute0' not shut off"; taint="true"; fi
+              if ! echo "$output" | grep -q 'controller0.*shut off'; then echo "'controller0' not shut off"; taint="true"; fi
+
+              echo "Checking 'bifrost_deploy' container..."
+              container_output=$(ssh stack@192.168.33.5 'sudo docker ps')
+              echo "$container_output"
+              if ! echo "$container_output" | grep -q bifrost_deploy; then echo "Container bifrost_deploy not found running"; taint="true"; fi
+
+              echo "Checking openssh package source..."
+              pkg_output=$(ssh stack@192.168.33.5 'sudo dnf info openssh')
+              echo "$pkg_output"
+              if ! echo "$pkg_output" | grep -q 'Repository *: *@System'; then echo "Package openssh not from @System"; taint="true"; fi
+
+              echo "Checking a-seed-from-nothing.out log result..."
+              if ! tail -n 10 a-seed-from-nothing.out | grep -q 'PLAY RECAP.*failed=0'; then
+                echo "Ansible PLAY RECAP failed != 0"
+                taint="true"
+              fi
+
+              echo "All checks passed on $HOSTNAME"
+              EOF
+            if [ "$taint" == "true" ]; then failed_indexes+=($index); fi
+            index=$((index + 1))
+
+          done < ssh_list.txt
+          echo "FAILED_VM_INDEXES=${failed_indexes[*]}" >> $GITHUB_ENV
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+          
+      - name: Taint failed lab VMs (if any)
+        run: |
+          if [ -z "${FAILED_VM_INDEXES}" ]; then
+            echo "No failed VMs detected"
+            exit 0
+          fi
+
+          for idx in $FAILED_VM_INDEXES; do
+            echo "Tainting openstack_compute_instance_v2.lab[$idx]"
+            terraform taint "openstack_compute_instance_v2.lab[$idx]"
+          done
+
+          echo "Re-running Terraform apply to fix failed VMs"
+          terraform apply -auto-approve
+        env:
+          FAILED_VM_INDEXES: ${{ env.FAILED_VM_INDEXES }}
+        shell: bash
+
+      - name: Get Terraform outputs
+        id: tf_outputs_after_taint
+        run: |
+          terraform output -json
+
+      - name: Write Terraform outputs
+        run: |
+          cat << EOF > tf-outputs.yml
+          ${{ steps.tf_outputs_after_taint.outputs.stdout }}
+          EOF
+
+      - name: Write out Lab VMs info
+        run: |
+          terraform output -raw labs > ssh_list.txt
+
+      - name: Re-test failed lab VMs after redeploy
+        run: |
+          set -euo pipefail
+
+          bastion_ip=185.45.78.149
+          bastion_key="default.pem"
+          mapfile -t ssh_lines < ssh_list.txt
+
+          for idx in $FAILED_VM_INDEXES; do
+            line="${ssh_lines[$idx]}"
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+
+            echo "::add-mask::$password"
+            echo "Re-testing $name at $ip (index $idx)..."
+
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
+              -o IdentityFile=$bastion_key \
+              "${LAB_IMAGE_USER}@${ip}" <<'EOF' || {
+                echo "Post-deploy check failed on $name. Destroying all infrastructure..."
+                terraform destroy -auto-approve
+                exit 1
+              }
+
+              echo "Re-checking virsh VMs..."
+              output=$(sudo virsh list --all)
+              echo "$output"
+              if ! echo "$output" | grep -q 'seed.*running'; then echo "'seed' not running"; exit 1; fi
+              if ! echo "$output" | grep -q 'compute0.*shut off'; then echo "'compute0' not shut off"; exit 1; fi
+              if ! echo "$output" | grep -q 'controller0.*shut off'; then echo "'controller0' not shut off"; exit 1; fi
+
+              echo "Checking bifrost container..."
+              if ! ssh stack@192.168.33.5 'sudo docker ps' | grep -q bifrost_deploy; then
+                echo "bifrost_deploy container not running"; exit 1;
+              fi
+
+              echo "Checking openssh package source..."
+              if ! ssh stack@192.168.33.5 'sudo dnf info openssh' | grep -q 'Repository *: *@System'; then
+                echo "openssh not from @System"; exit 1;
+              fi
+
+              echo "Checking a-seed-from-nothing.out for Ansible success..."
+              if ! tail -n 20 a-seed-from-nothing.out | grep -q 'PLAY RECAP.*failed=0'; then
+                echo "Ansible PLAY RECAP shows failures"; exit 1;
+              fi
+
+              echo "All post-redeploy checks passed on $HOSTNAME"
+              EOF
+
+          done
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+          FAILED_VM_INDEXES: ${{ env.FAILED_VM_INDEXES }}
+
+      - name: Run a-universe-from-seed.sh if true
+        if: inputs.au_from_seed == true
+        run: |
+          bastion_ip=185.45.78.149
+          bastion_key="default.pem"
+
+          mapfile -t ssh_lines < ssh_list.txt
+
+          for i in "${!ssh_lines[@]}"; do
+            line="${ssh_lines[$i]}"
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+
+            echo "::add-mask::$password"
+            echo "Launching a-universe-from-seed.sh on $name at $ip in tmux..."
+
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
+              -o IdentityFile=$bastion_key \
+              "${LAB_IMAGE_USER}@${ip}" \
+              "tmux new-session -d -s aus-run './a-universe-from-seed.sh'"
+          done
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+
+      # - name: Run test workflow
+      #   if: inputs.deployment_type == 'Test'
+      #   uses: ./.github/workflows/AUFN-test.yml
+
+      # - name: Upload Terraform outputs
+      #   if: ${{ inputs.deployment_type  == 'Deployment' || inputs.debug_mode == true }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ inputs.deployment_type }}-terraform-artifacts
+    
+      - name: Destroy
+        run: terraform destroy -auto-approve
+        env:
+          OS_CLOUD: ${{ vars.OS_CLOUD }}
+          OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+          OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+        if: always()
