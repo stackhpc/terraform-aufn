@@ -1,0 +1,231 @@
+---
+# This reusable workflow deploys a VM on a cloud using Terraform, then deploys
+# OpenStack in the VM via Kayobe. Tempest is then used to test the cloud.
+
+name: AUFN Test
+
+on:
+  workflow_call:
+    inputs:
+      au_from_seed:
+        description: Run 'A Universe From Seed'?
+        type: boolean
+        default: false
+      aufn-runner-id:
+        description: ID of the runner from the parent workflow
+        type: string
+        required: true
+      os_image:
+        description: Host OS image
+        type: string
+        required: true
+    secrets:
+      BASTION_TEST_PASSWORD:
+        required: true
+      CLOUDS_YAML:
+        required: true
+      OS_APPLICATION_CREDENTIAL_ID:
+        required: true
+      OS_APPLICATION_CREDENTIAL_SECRET:
+        required: true
+
+jobs:
+  deployment-lab-testing:
+    name: Test Lab VMs Setup
+    environment: Test
+    runs-on: ${{ inputs.aufn-runner-id }}
+    steps:
+
+      - name: Check connection to Lab VMs
+        run: |
+          while IFS= read -r line; do
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+            
+            echo "::add-mask::$password"
+            
+            echo "Connecting to $name at $ip via bastion..."
+
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              "${LAB_IMAGE_USER}@${ip}" \
+              'echo "Connected to $(hostname)"'
+          done < ssh_list.txt
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+
+      - name: Validate lab VMs setup
+        run: |
+          index=0
+          failed_indexes=()
+
+          while IFS= read -r line; do
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+            taint="false"
+            
+            echo "::add-mask::$password"
+            echo "Connecting to $name at $ip..."
+
+            # Run the compound remote commands
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              "${LAB_IMAGE_USER}@${ip}" <<'EOF'
+
+              echo Checking 'virsh list --all'..."
+              output=$(sudo virsh list --all)
+              echo "$output"
+
+              if ! echo "$output" | grep -q 'seed.*running'; then echo "'seed' not running"; taint="true"; fi
+              if ! echo "$output" | grep -q 'compute0.*shut off'; then echo "'compute0' not shut off"; taint="true"; fi
+              if ! echo "$output" | grep -q 'controller0.*shut off'; then echo "'controller0' not shut off"; taint="true"; fi
+
+              echo "Checking 'bifrost_deploy' container..."
+              container_output=$(ssh stack@192.168.33.5 'sudo docker ps')
+              echo "$container_output"
+              if ! echo "$container_output" | grep -q bifrost_deploy; then echo "Container bifrost_deploy not found running"; taint="true"; fi
+
+              echo "Checking openssh package source..."
+              pkg_output=$(ssh stack@192.168.33.5 'sudo dnf info openssh')
+              echo "$pkg_output"
+              if ! echo "$pkg_output" | grep -q 'Repository *: *@System'; then echo "Package openssh not from @System"; taint="true"; fi
+
+              echo "Checking a-seed-from-nothing.out log result..."
+              if ! tail -n 10 a-seed-from-nothing.out | grep -q 'PLAY RECAP.*failed=0'; then
+                echo "Ansible PLAY RECAP failed != 0"
+                taint="true"
+              fi
+
+              echo "All checks passed on $HOSTNAME"
+              EOF
+            if [ "$taint" == "true" ]; then failed_indexes+=($index); fi
+            index=$((index + 1))
+
+          done < ssh_list.txt
+          echo "FAILED_VM_INDEXES=${failed_indexes[*]}" >> $GITHUB_ENV
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+          
+      - name: Taint failed lab VMs (if any)
+        run: |
+          if [ -z "${FAILED_VM_INDEXES}" ]; then
+            echo "No failed VMs detected"
+            exit 0
+          fi
+
+          for idx in $FAILED_VM_INDEXES; do
+            echo "Tainting openstack_compute_instance_v2.lab[$idx]"
+            terraform taint "openstack_compute_instance_v2.lab[$idx]"
+          done
+
+          echo "Re-running Terraform apply to fix failed VMs"
+          terraform apply -auto-approve
+        env:
+          FAILED_VM_INDEXES: ${{ env.FAILED_VM_INDEXES }}
+          OS_CLOUD: ${{ vars.OS_CLOUD }}
+        shell: bash
+
+      - name: Get Terraform outputs
+        id: tf_outputs_after_taint
+        run: |
+          terraform output -json
+
+      - name: Write Terraform outputs
+        run: |
+          cat << EOF > tf-outputs.yml
+          ${{ steps.tf_outputs_after_taint.outputs.stdout }}
+          EOF
+
+      - name: Write out Lab VMs info
+        run: |
+          terraform output -raw labs > ssh_list.txt
+
+      - name: Re-test failed lab VMs after redeploy
+        run: |
+          set -euo pipefail
+
+          mapfile -t ssh_lines < ssh_list.txt
+
+          for idx in $FAILED_VM_INDEXES; do
+            line="${ssh_lines[$idx]}"
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+
+            echo "::add-mask::$password"
+            echo "Re-testing $name at $ip (index $idx)..."
+
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              "${LAB_IMAGE_USER}@${ip}" <<'EOF' || {
+                echo "Post-deploy check failed on $name. Destroying all infrastructure..."
+                terraform destroy -auto-approve
+                exit 1
+              }
+
+              echo "Re-checking virsh VMs..."
+              output=$(sudo virsh list --all)
+              echo "$output"
+              if ! echo "$output" | grep -q 'seed.*running'; then echo "'seed' not running"; exit 1; fi
+              if ! echo "$output" | grep -q 'compute0.*shut off'; then echo "'compute0' not shut off"; exit 1; fi
+              if ! echo "$output" | grep -q 'controller0.*shut off'; then echo "'controller0' not shut off"; exit 1; fi
+
+              echo "Checking bifrost container..."
+              if ! ssh stack@192.168.33.5 'sudo docker ps' | grep -q bifrost_deploy; then
+                echo "bifrost_deploy container not running"; exit 1;
+              fi
+
+              echo "Checking openssh package source..."
+              if ! ssh stack@192.168.33.5 'sudo dnf info openssh' | grep -q 'Repository *: *@System'; then
+                echo "openssh not from @System"; exit 1;
+              fi
+
+              echo "Checking a-seed-from-nothing.out for Ansible success..."
+              if ! tail -n 20 a-seed-from-nothing.out | grep -q 'PLAY RECAP.*failed=0'; then
+                echo "Ansible PLAY RECAP shows failures"; exit 1;
+              fi
+
+              echo "All post-redeploy checks passed on $HOSTNAME"
+              EOF
+
+          done
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+          FAILED_VM_INDEXES: ${{ env.FAILED_VM_INDEXES }}
+
+      - name: Run a-universe-from-seed.sh if true
+        if: inputs.au_from_seed == true
+        run: |
+          mapfile -t ssh_lines < ssh_list.txt
+
+          for i in "${!ssh_lines[@]}"; do
+            line="${ssh_lines[$i]}"
+            ip=$(echo "$line" | awk '{print $2}')
+            name=$(echo "$line" | awk '{print $3}')
+            password=$(echo "$line" | awk '{print $5}')
+
+            echo "::add-mask::$password"
+            echo "Launching a-universe-from-seed.sh on $name at $ip in tmux..."
+
+            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+              "${LAB_IMAGE_USER}@${ip}" \
+              "tmux new-session -d -s aus-run './a-universe-from-seed.sh'"
+          done
+        shell: bash
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+
+      # - name: Run test workflow
+      #   if: inputs.deployment_type == 'Test'
+      #   uses: ./.github/workflows/AUFN-test.yml
+
+      # - name: Upload Terraform outputs
+      #   if: ${{ inputs.deployment_type  == 'Deployment' || inputs.debug_mode == true }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ inputs.deployment_type }}-terraform-artifacts
+    
+
+

@@ -17,7 +17,7 @@ on:
         description: Total number of Lab VMs to deploy
         type: number
         required: true
-        default: 2
+        default: 1
       reg_pwd: # When using in workflow use ::add-mask::$ to mask the password
         description: Password for registry access
         type: string
@@ -30,7 +30,7 @@ on:
           - Rocky9
         default: 'Rocky9'
       aufn_branch:
-        description: Which branch of AUFN to use
+        description: Which branch of AUFN to use  #Need to use this to alter a-seed-from-nothing.sh
         type: string
         default: smslab/2023.1
       au_from_seed:
@@ -52,10 +52,10 @@ on:
         required: true
 
 jobs:
-  set-up-vars:
-    name: Set up variables
+  deploy-aufn:
+    name: Set up variables and deploy AUFN
     environment: ${{ inputs.deployment_type }}
-    runs-on: Ubuntu-latest
+    runs-on: arc-aufn-runner-sms
 
     steps:
       - name: Install Package
@@ -161,231 +161,27 @@ jobs:
         run: |
           terraform output -raw labs > ssh_list.txt
 
-      - name: Update bastion password authentication and set login password
-        run: |
-          echo "::add-mask::${{ env.reg_pwd_var }}"
+      - name: Run tests on Lab VMs (Test)
+        uses: ./.github/workflows/AUFN-Test.yml
+        with:
+          aufn-runner-id: ${{ runner.name }}
+          au_from_seed: ${{ inputs.au_from_seed }}
+          os_image: ${{ inputs.os_image }}
+        if: ${{ inputs.deployment_type == 'Test' }}
 
-          ssh rocky@185.45.78.149 -i default.pem <<EOF
-            echo '${{ env.reg_pwd_var }}' | sudo passwd --stdin rocky
-            sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config.d/50-cloud-init.conf
-            sudo systemctl restart sshd
-          EOF
-        shell: bash
-        env:
-          reg_pwd_var: ${{ inputs.reg_pwd == '' && 'secrets.BASTION_TEST_PASSWORD' || inputs.reg_pwd }}
+      - name: Run tests on Lab VMs (Deployment)
+        uses: ./.github/workflows/AUFN-Deployment.yml
+        with:
+          reg_pwd: ${{ inputs.reg_pwd }}
+          aufn-runner-id: ${{ runner.name }}
+          au_from_seed: ${{ inputs.au_from_seed }}
+          os_image: ${{ inputs.os_image }}
+        if: ${{ inputs.deployment_type == 'Deployment' }}
 
-      - name: Check connection to Lab VMs
-        run: |
-          bastion_ip=185.45.78.149 
-          bastion_key="default.pem"
-
-          while IFS= read -r line; do
-            ip=$(echo "$line" | awk '{print $2}')
-            name=$(echo "$line" | awk '{print $3}')
-            password=$(echo "$line" | awk '{print $5}')
-            
-            echo "::add-mask::$password"
-            
-            echo "Connecting to $name at $ip via bastion..."
-
-            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
-              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
-              -o IdentityFile=$bastion_key \
-              "${LAB_IMAGE_USER}@${ip}" \
-              'echo "Connected to $(hostname)"'
-          done < ssh_list.txt
-        shell: bash
-        env:
-          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
-
-      - name: Validate lab VMs setup
-        run: |
-          bastion_ip=185.45.78.149
-          bastion_key="default.pem"
-          index=0
-          failed_indexes=()
-
-          while IFS= read -r line; do
-            ip=$(echo "$line" | awk '{print $2}')
-            name=$(echo "$line" | awk '{print $3}')
-            password=$(echo "$line" | awk '{print $5}')
-            taint="false"
-            
-            echo "::add-mask::$password"
-            echo "Connecting to $name at $ip..."
-
-            # Run the compound remote commands
-            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
-              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
-              -o IdentityFile=$bastion_key \
-              "${LAB_IMAGE_USER}@${ip}" <<'EOF'
-
-              echo Checking 'virsh list --all'..."
-              output=$(sudo virsh list --all)
-              echo "$output"
-
-              if ! echo "$output" | grep -q 'seed.*running'; then echo "'seed' not running"; taint="true"; fi
-              if ! echo "$output" | grep -q 'compute0.*shut off'; then echo "'compute0' not shut off"; taint="true"; fi
-              if ! echo "$output" | grep -q 'controller0.*shut off'; then echo "'controller0' not shut off"; taint="true"; fi
-
-              echo "Checking 'bifrost_deploy' container..."
-              container_output=$(ssh stack@192.168.33.5 'sudo docker ps')
-              echo "$container_output"
-              if ! echo "$container_output" | grep -q bifrost_deploy; then echo "Container bifrost_deploy not found running"; taint="true"; fi
-
-              echo "Checking openssh package source..."
-              pkg_output=$(ssh stack@192.168.33.5 'sudo dnf info openssh')
-              echo "$pkg_output"
-              if ! echo "$pkg_output" | grep -q 'Repository *: *@System'; then echo "Package openssh not from @System"; taint="true"; fi
-
-              echo "Checking a-seed-from-nothing.out log result..."
-              if ! tail -n 10 a-seed-from-nothing.out | grep -q 'PLAY RECAP.*failed=0'; then
-                echo "Ansible PLAY RECAP failed != 0"
-                taint="true"
-              fi
-
-              echo "All checks passed on $HOSTNAME"
-              EOF
-            if [ "$taint" == "true" ]; then failed_indexes+=($index); fi
-            index=$((index + 1))
-
-          done < ssh_list.txt
-          echo "FAILED_VM_INDEXES=${failed_indexes[*]}" >> $GITHUB_ENV
-        shell: bash
-        env:
-          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
-          
-      - name: Taint failed lab VMs (if any)
-        run: |
-          if [ -z "${FAILED_VM_INDEXES}" ]; then
-            echo "No failed VMs detected"
-            exit 0
-          fi
-
-          for idx in $FAILED_VM_INDEXES; do
-            echo "Tainting openstack_compute_instance_v2.lab[$idx]"
-            terraform taint "openstack_compute_instance_v2.lab[$idx]"
-          done
-
-          echo "Re-running Terraform apply to fix failed VMs"
-          terraform apply -auto-approve
-        env:
-          FAILED_VM_INDEXES: ${{ env.FAILED_VM_INDEXES }}
-        shell: bash
-
-      - name: Get Terraform outputs
-        id: tf_outputs_after_taint
-        run: |
-          terraform output -json
-
-      - name: Write Terraform outputs
-        run: |
-          cat << EOF > tf-outputs.yml
-          ${{ steps.tf_outputs_after_taint.outputs.stdout }}
-          EOF
-
-      - name: Write out Lab VMs info
-        run: |
-          terraform output -raw labs > ssh_list.txt
-
-      - name: Re-test failed lab VMs after redeploy
-        run: |
-          set -euo pipefail
-
-          bastion_ip=185.45.78.149
-          bastion_key="default.pem"
-          mapfile -t ssh_lines < ssh_list.txt
-
-          for idx in $FAILED_VM_INDEXES; do
-            line="${ssh_lines[$idx]}"
-            ip=$(echo "$line" | awk '{print $2}')
-            name=$(echo "$line" | awk '{print $3}')
-            password=$(echo "$line" | awk '{print $5}')
-
-            echo "::add-mask::$password"
-            echo "Re-testing $name at $ip (index $idx)..."
-
-            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
-              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
-              -o IdentityFile=$bastion_key \
-              "${LAB_IMAGE_USER}@${ip}" <<'EOF' || {
-                echo "Post-deploy check failed on $name. Destroying all infrastructure..."
-                terraform destroy -auto-approve
-                exit 1
-              }
-
-              echo "Re-checking virsh VMs..."
-              output=$(sudo virsh list --all)
-              echo "$output"
-              if ! echo "$output" | grep -q 'seed.*running'; then echo "'seed' not running"; exit 1; fi
-              if ! echo "$output" | grep -q 'compute0.*shut off'; then echo "'compute0' not shut off"; exit 1; fi
-              if ! echo "$output" | grep -q 'controller0.*shut off'; then echo "'controller0' not shut off"; exit 1; fi
-
-              echo "Checking bifrost container..."
-              if ! ssh stack@192.168.33.5 'sudo docker ps' | grep -q bifrost_deploy; then
-                echo "bifrost_deploy container not running"; exit 1;
-              fi
-
-              echo "Checking openssh package source..."
-              if ! ssh stack@192.168.33.5 'sudo dnf info openssh' | grep -q 'Repository *: *@System'; then
-                echo "openssh not from @System"; exit 1;
-              fi
-
-              echo "Checking a-seed-from-nothing.out for Ansible success..."
-              if ! tail -n 20 a-seed-from-nothing.out | grep -q 'PLAY RECAP.*failed=0'; then
-                echo "Ansible PLAY RECAP shows failures"; exit 1;
-              fi
-
-              echo "All post-redeploy checks passed on $HOSTNAME"
-              EOF
-
-          done
-        shell: bash
-        env:
-          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
-          FAILED_VM_INDEXES: ${{ env.FAILED_VM_INDEXES }}
-
-      - name: Run a-universe-from-seed.sh if true
-        if: inputs.au_from_seed == true
-        run: |
-          bastion_ip=185.45.78.149
-          bastion_key="default.pem"
-
-          mapfile -t ssh_lines < ssh_list.txt
-
-          for i in "${!ssh_lines[@]}"; do
-            line="${ssh_lines[$i]}"
-            ip=$(echo "$line" | awk '{print $2}')
-            name=$(echo "$line" | awk '{print $3}')
-            password=$(echo "$line" | awk '{print $5}')
-
-            echo "::add-mask::$password"
-            echo "Launching a-universe-from-seed.sh on $name at $ip in tmux..."
-
-            sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
-              -o ProxyJump="${LAB_IMAGE_USER}@${bastion_ip}" \
-              -o IdentityFile=$bastion_key \
-              "${LAB_IMAGE_USER}@${ip}" \
-              "tmux new-session -d -s aus-run './a-universe-from-seed.sh'"
-          done
-        shell: bash
-        env:
-          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
-
-      # - name: Run test workflow
-      #   if: inputs.deployment_type == 'Test'
-      #   uses: ./.github/workflows/AUFN-test.yml
-
-      # - name: Upload Terraform outputs
-      #   if: ${{ inputs.deployment_type  == 'Deployment' || inputs.debug_mode == true }}
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ${{ inputs.deployment_type }}-terraform-artifacts
-    
-      - name: Destroy
+      - name: Destroy Failed or Test Lab VMs
         run: terraform destroy -auto-approve
         env:
           OS_CLOUD: ${{ vars.OS_CLOUD }}
           OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
           OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
-        if: always()
+        if: always() #&& (${{ inputs.deployment_type }} == 'Test')
