@@ -86,3 +86,8 @@ variable "dns_zone_name" {
   nullable    = true
   default     = null
 }
+
+variable "reg_sec_grp" {
+  description = "Security group for the registry instance"
+  default     = ["default"]
+}

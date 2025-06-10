@@ -112,6 +112,10 @@ jobs:
           if [ "${{ inputs.deployment_type }}" = "Deployment" ]; then
             echo 'bastion_floating_ip = "185.45.78.149"' >> terraform.tfvars
           fi
+
+          if [ "${{ inputs.deployment_type }}" = "Test" ]; then
+            echo 'reg_sec_grp = ["default","aufn-lab-rules"]' >> terraform.tfvars
+          fi
         env:
           LAB_IMAGE_ID: ${{ inputs.os_image == 'Rocky9' && vars.LAB_OS_IMAGE_ROCKY || inputs.os_image == 'Ubuntu' && vars.LAB_OS_IMAGE_UBUNTU  }}
           LAB_IMAGE_NAME: ${{ inputs.os_image == 'Ubuntu' && 'Ubuntu-22.04' || inputs.os_image }}
@@ -137,8 +141,6 @@ jobs:
               
               # Need to add a check to see which part failed and then 
               # taint and retry once more before declating failure
-              
-              terraform destroy -auto-approve
               sleep 60
           done
           echo "Failed to create infrastructure after $attempt attempts"

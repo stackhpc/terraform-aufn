@@ -56,7 +56,7 @@ resource "openstack_compute_instance_v2" "registry" {
   name            = "${var.lab_prefix}-registry"
   flavor_name     = var.registry_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
-  security_groups = ["default"]
+  security_groups = var.reg_sec_grp
 
   block_device {
     uuid                  = var.image_id
