@@ -164,12 +164,11 @@ jobs:
           terraform output -raw labs > ssh_list.txt
 
       - name: Run tests on Lab VMs (Test)
-        uses: ./.github/workflows/AUFN-Test.yml
+        if: ${{ inputs.deployment_type == 'Test' }}
+        uses: ./.github/actions/aufn-test
         with:
-          aufn-runner-id: ${{ runner.name }}
           au_from_seed: ${{ inputs.au_from_seed }}
           os_image: ${{ inputs.os_image }}
-        if: ${{ inputs.deployment_type == 'Test' }}
 
       - name: Run tests on Lab VMs (Deployment)
         uses: ./.github/workflows/AUFN-Deployment.yml

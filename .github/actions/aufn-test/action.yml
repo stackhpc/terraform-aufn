@@ -1,0 +1,22 @@
+name: AUFN Test Action
+description: Deploy and validate Lab VMs
+
+inputs:
+  au_from_seed:
+    description: Run 'A Universe From Seed'?
+    default: 'false'
+    required: false
+  os_image:
+    description: Host OS image
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run AUFN test logic
+      shell: bash
+      run: |
+        chmod +x "${GITHUB_ACTION_PATH}/run.sh"
+        "${GITHUB_ACTION_PATH}/run.sh" \
+          "${{ inputs.au_from_seed }}" \
+          "${{ inputs.os_image }}"
