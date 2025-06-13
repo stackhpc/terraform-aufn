@@ -1,0 +1,46 @@
+name: AUFN Test Action
+description: Deploy and validate Lab VMs
+
+inputs:
+  bas_pwd:
+    description: Password for bastion access
+    required: true
+  au_from_seed:
+    description: Run 'A Universe From Seed'?
+    default: 'false'
+    required: false
+  os_image:
+    description: Host OS image
+    required: true
+  taint_rebuild:
+    description: Taint and rebuild failed Lab VMs?
+    default: 'false'
+    required: false
+  working_dir:
+    description: Working directory for terraform
+
+runs:
+  using: "composite"
+  steps:
+    # - name: Set up environment variables
+    #   shell: bash
+    #   run: |
+    #     echo "BAS_PWD=${{ inputs.bas_pwd }}" >> $GITHUB_ENV
+    #     echo "AU_FROM_SEED=${{ inputs.au_from_seed }}" >> $GITHUB_ENV
+    #     echo "OS_IMAGE=${{ inputs.os_image }}" >> $GITHUB_ENV
+    #     echo "TAINT_REBUILD=${{ inputs.taint_rebuild }}" >> $GITHUB_ENV
+
+    - name: Run AUFN Deployment test logic
+      shell: bash
+      run: |
+        cd "${{ inputs.working_dir }}"
+        cp "${GITHUB_ACTION_PATH}/run.sh" .
+        chmod +x run.sh
+        ./run.sh
+      env:
+        BAS_PWD: ${{ inputs.bas_pwd }}
+        AU_FROM_SEED: ${{ inputs.au_from_seed }}
+        OS_IMAGE: ${{ inputs.os_image }}
+        TAINT_REBUILD: ${{ inputs.taint_rebuild }}
+
+

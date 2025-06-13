@@ -56,10 +56,32 @@ on:
         required: true
 
 jobs:
+  check_for_existing_deployment:
+    name: Check for existing full lab deployment
+    runs-on: ubuntu-latest
+    if: ${{ inputs.deployment_type == 'Deployment' }}
+    outputs:
+      exists: ${{ steps.set_output.outputs.exists }}
+    steps:
+      - name: Try to download tfstate artifact
+        id: check
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: tfstate
+          path: ./tfstate
+
+      - name: Set output
+        id: set_output
+        run: echo "exists=true" >> $GITHUB_OUTPUT
+        if: success() && steps.check.outcome == 'success'  
+
   deploy-aufn:
     name: Set up variables and deploy AUFN
     environment: ${{ inputs.deployment_type }}
     runs-on: arc-aufn-runner-sms
+    needs: check_for_existing_deployment
+    if: needs.check_for_existing_deployment.outputs.exists != 'true'
 
     steps:
       - name: Install Package
@@ -70,14 +92,6 @@ jobs:
       - name: Start the SSH service
         run: |
           sudo /etc/init.d/ssh start
-
-      # - name: Check if 'Deployment' Lab is already deployed
-      #   uses: softwareforgood/check-artifact-v4-existence@v0
-      #   with:
-      #     name: ${{ inputs.deployment_type }}-terraform-artifacts
-      #
-      #  or use a ping command to check if the bastion is up
-      #
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -162,7 +176,7 @@ jobs:
 
       - name: Write out Lab VMs info
         run: |
-          terraform output -raw labs > ssh_list.txt
+          terraform output labs | sed '1d;$d' > ssh_list.txt
 
       - name: Write bastion ssh config file entry
         run: |
@@ -178,23 +192,28 @@ jobs:
           au_from_seed: ${{ inputs.au_from_seed }}
           os_image: ${{ inputs.os_image }}
           taint_rebuild: ${{ inputs.taint_rebuild }}
+          working_dir: ${{ github.workspace }}
 
       - name: Run tests on Lab VMs (Deployment)
         if: ${{ inputs.deployment_type == 'Deployment' }}
+        id: aufn_deployment
         uses: ./.github/actions/aufn-deployment
         with:
           bas_pwd: ${{ env.bas_pwd_var }}
           au_from_seed: ${{ inputs.au_from_seed }}
           os_image: ${{ inputs.os_image }}
           taint_rebuild: ${{ inputs.taint_rebuild }}
+          working_dir: ${{ github.workspace }}
         env:
           bas_pwd_var: ${{ inputs.bas_pwd == '' && secrets.BASTION_TEST_PASSWORD || inputs.bas_pwd }}
 
-      # - name: Upload Terraform outputs
-      #   if: ${{ inputs.deployment_type  == 'Deployment' || inputs.debug_mode == true }}
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ${{ inputs.deployment_type }}-terraform-artifacts
+      - name: Upload Terraform state
+        id: upload_tfstate
+        if: ${{ inputs.deployment_type  == 'Deployment' }} && steps.aufn_deployment.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfstate
+          path: ./terraform.tfstate
 
       - name: Pause for debugging (cancel workflow to clean up)
         if: always() && ${{ inputs.debug_mode == 'true' }} && ${{ inputs.deployment_type == 'Test' }}
@@ -202,10 +221,27 @@ jobs:
           echo "Pausing for 7d for debugging... cancel manually to proceed."
           if true; then sleep 7d; done
 
-      - name: Destroy Failed or Test Lab VMs
+      - name: Destroy Test Lab VMs
         run: terraform destroy -auto-approve
         env:
           OS_CLOUD: ${{ vars.OS_CLOUD }}
           OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
           OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
         if: always() && ${{ inputs.deployment_type }} == 'Test'
+
+      - name: Destroy Failed Deployment Lab VMs
+        run: terraform destroy -auto-approve
+        env:
+          OS_CLOUD: ${{ vars.OS_CLOUD }}
+          OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+          OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+        if: always() && ${{ inputs.deployment_type }} == 'Deployment' && steps.upload_tfstate.outcome != 'success'
+
+
+  notify_blocked:
+    runs-on: ubuntu-latest
+    needs: check_for_existing_deployment
+    if: needs.check_for_existing_deployment.outputs.exists == 'true' && ${{ inputs.deployment_type == 'Deployment' }}
+    steps:
+      - name: Notify that deployment is blocked
+        run: echo "A previous deployment exists — aborting new deployment. Run the destroy workflow first."
