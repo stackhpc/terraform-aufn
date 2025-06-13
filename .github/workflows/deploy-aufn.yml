@@ -18,8 +18,8 @@ on:
         type: number
         required: true
         default: 1
-      reg_pwd: # When using in workflow use ::add-mask::$ to mask the password
-        description: Password for registry access
+      bas_pwd: # When using in workflow use ::add-mask::$ to mask the password
+        description: Password for bastion access
         type: string
         default: ""  # NOTE: This needs to be set at runtime via secrets
       os_image:
@@ -38,7 +38,11 @@ on:
         type: boolean
         default: false
       debug_mode:
-        description: Keep Test up to debug?
+        description: Keep 'Test' up to debug?
+        type: boolean
+        default: false
+      taint_rebuild:
+        description: Taint and rebuild failed Lab VMs?
         type: boolean
         default: false
     secrets:
@@ -61,10 +65,7 @@ jobs:
       - name: Install Package
         uses: ConorMacBride/install-package@main
         with:
-          apt: git unzip nodejs python3-pip python3-venv openssh-server openssh-client jq
-
-      - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+          apt: git unzip nodejs python3-pip python3-venv openssh-server openssh-client jq sshpass
 
       - name: Start the SSH service
         run: |
@@ -163,21 +164,43 @@ jobs:
         run: |
           terraform output -raw labs > ssh_list.txt
 
+      - name: Write bastion ssh config file entry
+        run: |
+          printf "\nHost bastion\n    User ${{ env.LAB_IMAGE_USER }}\n    HostName 185.45.78.151\n    IdentityFile ~/default.pem" >> ~/.ssh/config
+        env:
+          LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
+        if: ${{ inputs.deployment_type == 'Deployment' }}
+
       - name: Run tests on Lab VMs (Test)
         if: ${{ inputs.deployment_type == 'Test' }}
         uses: ./.github/actions/aufn-test
         with:
           au_from_seed: ${{ inputs.au_from_seed }}
           os_image: ${{ inputs.os_image }}
+          taint_rebuild: ${{ inputs.taint_rebuild }}
 
       - name: Run tests on Lab VMs (Deployment)
-        uses: ./.github/workflows/AUFN-Deployment.yml
+        if: ${{ inputs.deployment_type == 'Deployment' }}
+        uses: ./.github/actions/aufn-deployment
         with:
-          reg_pwd: ${{ inputs.reg_pwd }}
-          aufn-runner-id: ${{ runner.name }}
+          bas_pwd: ${{ env.bas_pwd_var }}
           au_from_seed: ${{ inputs.au_from_seed }}
           os_image: ${{ inputs.os_image }}
-        if: ${{ inputs.deployment_type == 'Deployment' }}
+          taint_rebuild: ${{ inputs.taint_rebuild }}
+        env:
+          bas_pwd_var: ${{ inputs.bas_pwd == '' && secrets.BASTION_TEST_PASSWORD || inputs.bas_pwd }}
+
+      # - name: Upload Terraform outputs
+      #   if: ${{ inputs.deployment_type  == 'Deployment' || inputs.debug_mode == true }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ inputs.deployment_type }}-terraform-artifacts
+
+      - name: Pause for debugging (cancel workflow to clean up)
+        if: always() && ${{ inputs.debug_mode == 'true' }} && ${{ inputs.deployment_type == 'Test' }}
+        run: |
+          echo "Pausing for 7d for debugging... cancel manually to proceed."
+          if true; then sleep 7d; done
 
       - name: Destroy Failed or Test Lab VMs
         run: terraform destroy -auto-approve
@@ -185,4 +208,4 @@ jobs:
           OS_CLOUD: ${{ vars.OS_CLOUD }}
           OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
           OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
-        if: always() #&& (${{ inputs.deployment_type }} == 'Test')
+        if: always() && ${{ inputs.deployment_type }} == 'Test'
