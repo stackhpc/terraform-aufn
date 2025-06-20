@@ -188,7 +188,7 @@ jobs:
           # echo '${BAS_PWD}' | sudo passwd --stdin ${LAB_IMAGE_USER}
           # sudo echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config.d/50-cloud-init.conf
           # sudo systemctl restart sshd
-          sleep 3h
+          sleep 7h
         env:
           LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
           BAS_PWD: ${{ inputs.bas_pwd == '' && secrets.BASTION_TEST_PASSWORD || inputs.bas_pwd }}
