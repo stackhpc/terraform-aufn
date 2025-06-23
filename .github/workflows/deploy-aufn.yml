@@ -17,7 +17,7 @@ on:
         description: Total number of Lab VMs to deploy
         type: number
         required: true
-        default: 1
+        default: 2
       bas_pwd: # When using in workflow use ::add-mask::$ to mask the password
         description: Password for bastion access
         type: string

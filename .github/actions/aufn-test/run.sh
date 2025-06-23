@@ -22,8 +22,8 @@ function check_lab_vm_connections() {
   echo "Checking VM connections..."
   cat ssh_list.txt
   while IFS= read -r line; do
-    ip=$(echo "$line" | awk '{print $2}')
-    name=$(echo "$line" | awk '{print $3}')
+    ip=$(echo "$line" | awk '{print $3}')
+    name=$(echo "$line" | awk '{print $2}')
     password=$(echo "$line" | awk '{print $5}')
 
     echo "Connecting to $name ($password) at $ip ..."
@@ -38,8 +38,8 @@ function validate_lab_vms() {
   rm -f failed-labs.txt
 
   while IFS= read -r line; do
-    ip=$(echo "$line" | awk '{print $2}')
-    name=$(echo "$line" | awk '{print $3}')
+    ip=$(echo "$line" | awk '{print $3}')
+    name=$(echo "$line" | awk '{print $2}')
     password=$(echo "$line" | awk '{print $5}')
 
     echo "Validating $name at $ip..."
@@ -102,8 +102,8 @@ function taint_and_reapply() {
 #   mapfile -t ssh_lines < ssh_list.txt
 #   for i in "${!ssh_lines[@]}"; do
 #     line="${ssh_lines[$i]}"
-#     ip=$(echo "$line" | awk '{print $2}')
-#     name=$(echo "$line" | awk '{print $3}')
+#     ip=$(echo "$line" | awk '{print $3}')
+#     name=$(echo "$line" | awk '{print $2}')
 #     password=$(echo "$line" | awk '{print $5}')
 
 #     sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
@@ -116,8 +116,8 @@ function run_universe_from_seed() {
   if [[ "$AU_FROM_SEED" != "true" ]]; then return; fi
   echo "Launching a-universe-from-seed..."
   while IFS= read -r line; do
-    ip=$(echo "$line" | awk '{print $2}')
-    name=$(echo "$line" | awk '{print $3}')
+    ip=$(echo "$line" | awk '{print $3}')
+    name=$(echo "$line" | awk '{print $2}')
     password=$(echo "$line" | awk '{print $5}')
 
     sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
