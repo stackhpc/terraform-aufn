@@ -186,17 +186,6 @@ jobs:
           sed -i 's/"//g' registry.txt
           cat registry.txt
 
-      # - name: Sleep to debug (cancel workflow to clean up)
-      #   if: ${{ inputs.deployment_type == 'Test' }}
-      #   run: |
-      #     # ssh rocky@$(cat registry.txt) -i default.pem -o StrictHostKeyChecking=no
-      #     # echo '${BAS_PWD}' | sudo passwd --stdin ${LAB_IMAGE_USER}
-      #     # sudo echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config.d/50-cloud-init.conf
-      #     # sudo systemctl restart sshd
-      #     sleep 7h
-      #   env:
-      #     LAB_IMAGE_USER: ${{ inputs.os_image == 'Ubuntu' && 'ubuntu' || inputs.os_image == 'Rocky9' && 'rocky' }}
-      #     BAS_PWD: ${{ inputs.bas_pwd == '' && secrets.BASTION_TEST_PASSWORD || inputs.bas_pwd }}
 
       - name: Run tests on Lab VMs (Test)
         if: ${{ inputs.deployment_type == 'Test' }}
@@ -225,11 +214,16 @@ jobs:
       #   with:
       #     name: ${{ inputs.deployment_type }}-terraform-artifacts
 
+      - name: Sleep to debug (cancel workflow to clean up)
+        if: ${{ inputs.deployment_type == 'Test' }}
+        run: |
+          sleep 7h
+
       - name: Pause for debugging (cancel workflow to clean up)
         if: always() && ${{ inputs.debug_mode == true }} && ${{ inputs.deployment_type == 'Test' }}
         run: |
           echo "Pausing for 7d for debugging... cancel manually to proceed."
-          if true; then sleep 7d; done
+          sleep 7d
 
       - name: Destroy Failed or Test Lab VMs
         run: terraform destroy -auto-approve

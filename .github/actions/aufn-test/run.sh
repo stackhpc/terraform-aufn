@@ -20,6 +20,7 @@ fi
 
 function check_lab_vm_connections() {
   echo "Checking VM connections..."
+  cat ssh_list.txt
   while IFS= read -r line; do
     ip=$(echo "$line" | awk '{print $2}')
     name=$(echo "$line" | awk '{print $3}')
