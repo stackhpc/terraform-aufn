@@ -65,7 +65,7 @@ jobs:
       - name: Install Package
         uses: ConorMacBride/install-package@main
         with:
-          apt: git unzip nodejs python3-pip python3-venv openssh-server openssh-client jq sshpass
+          apt: git unzip python3-pip python3-venv openssh-server openssh-client jq sshpass # nodejs
 
       - name: Start the SSH service
         run: |
@@ -81,6 +81,10 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Install terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
