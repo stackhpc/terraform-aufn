@@ -83,9 +83,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_wrapper: false
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
 
       - name: Initialise terraform
         run: terraform init
@@ -163,7 +161,8 @@ jobs:
 
       - name: Write out Lab VMs info
         run: |
-          terraform output labs | sed '1d;$d' > ssh_list.txt
+          terraform output -raw labs > ssh_list.txt
+          sed -i 's/"//g' ssh_list.txt
 
       - name: Echo Lab VMs info
         run: |
@@ -179,7 +178,7 @@ jobs:
 
       - name: Write out registry VMs info
         run: |
-          terraform output registry_ip | sed '1d;$d' > registry.txt
+          terraform output -raw registry_ip > registry.txt
           sed -i 's/"//g' registry.txt
           cat registry.txt
 
@@ -223,7 +222,7 @@ jobs:
       #     name: ${{ inputs.deployment_type }}-terraform-artifacts
 
       - name: Pause for debugging (cancel workflow to clean up)
-        if: always() && ${{ inputs.debug_mode == 'true' }} && ${{ inputs.deployment_type == 'Test' }}
+        if: always() && ${{ inputs.debug_mode == true }} && ${{ inputs.deployment_type == 'Test' }}
         run: |
           echo "Pausing for 7d for debugging... cancel manually to proceed."
           if true; then sleep 7d; done
