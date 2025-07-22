@@ -167,6 +167,7 @@ jobs:
         run: |
           terraform output -raw labs > ssh_list.txt
           sed -i 's/"//g' ssh_list.txt
+          echo >> ssh_list.txt
 
       - name: Echo Lab VMs info
         run: |

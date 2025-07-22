@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# AU_FROM_SEED="false"
+AU_FROM_SEED="true"
 # OS_IMAGE="Rocky9"
-# TAINT_REBUILD="false"
+TAINT_REBUILD="true"
 
 echo "Starting AUFN test action with:"
 echo "AU_FROM_SEED: $AU_FROM_SEED"
 echo "OS Image: $OS_IMAGE"
+echo "TAINT_REBUILD: $TAINT_REBUILD"
+echo
 
 if [[ "$OS_IMAGE" == "Ubuntu" ]]; then
   export LAB_IMAGE_USER="ubuntu"
@@ -19,20 +21,24 @@ else
 fi
 
 function check_lab_vm_connections() {
+  echo
   echo "Checking VM connections..."
-  cat ssh_list.txt
+  echo
   while IFS= read -r line; do
     ip=$(echo "$line" | awk '{print $3}')
     name=$(echo "$line" | awk '{print $2}')
     password=$(echo "$line" | awk '{print $5}')
 
-    echo "Connecting to $name ($password) at $ip ..."
+    echo
+    echo
+    echo "Connecting to $name at $ip ..."
     sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
       "lab@${ip}" 'echo "Connected to $(hostname)"'
   done < ssh_list.txt
 }
 
 function validate_lab_vms() {
+  echo && echo
   echo "Validating Lab VMs setup..."
   index=0
   rm -f failed-labs.txt
@@ -42,9 +48,10 @@ function validate_lab_vms() {
     name=$(echo "$line" | awk '{print $2}')
     password=$(echo "$line" | awk '{print $5}')
 
-    echo "Validating $name at $ip..."
+    echo && echo
+    echo "Validating $name at $ip..." && echo
 
-    sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+    sshpass -p "$password" ssh -o StrictHostKeyChecking=no\
       "lab@${ip}" <<'EOF'
     output=$(sudo virsh list --all)
     echo "$output"
@@ -52,6 +59,7 @@ function validate_lab_vms() {
     if ! echo "$output" | grep -q 'compute0.*shut off'; then echo "'compute0' not shut off"; fi
     if ! echo "$output" | grep -q 'controller0.*shut off'; then echo "'controller0' not shut off"; fi
 
+    echo && echo
     echo "$(ssh stack@192.168.33.5 'sudo docker ps')"
     if ! ssh stack@192.168.33.5 'sudo docker ps' | grep -q bifrost_deploy; then echo "Bifrost container isn't deployed"; fi
     if ! tail -n 10 a-seed-from-nothing.out | grep -q 'PLAY RECAP.*failed=0'; then echo "There was an error in running 'a-seed-from-nothing'"; fi
@@ -77,6 +85,7 @@ EOF
     index=$((index + 1))
     set -euo pipefail
   done < ssh_list.txt
+#  echo >> failed-labs.txt
 }
 
 function taint_and_reapply() {
@@ -88,7 +97,7 @@ function taint_and_reapply() {
   echo "Tainting failed VMs..."
   while IFS= read -r line; do
     idx=$(echo "$line" | tr -d '\r')
-    echo "Tainting VM at index $idx"
+    echo "Tainting aufn-lab $idx VM"
     terraform taint openstack_compute_instance_v2.lab[$idx]
   done < failed-labs.txt
   echo "Rebuilding tainted Lab VMs..."
@@ -133,7 +142,7 @@ check_lab_vm_connections
 validate_lab_vms
 
 
-if [[ "$TAINT_REBUILD" = "true" ]]; then
+if [[ "$TAINT_REBUILD" = "true" && ! -s failed-labs.txt ]]; then
   taint_and_reapply
   terraform output -json > tf-outputs.json
   terraform output -raw labs > ssh_list.txt
