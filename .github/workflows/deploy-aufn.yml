@@ -36,7 +36,7 @@ on:
       au_from_seed:
         description: Run 'A Universe From Seed'?
         type: boolean
-        default: false
+        default: true
       debug_mode:
         description: Keep 'Test' up to debug?
         type: boolean
@@ -44,7 +44,7 @@ on:
       taint_rebuild:
         description: Taint and rebuild failed Lab VMs?
         type: boolean
-        default: false
+        default: true
     secrets:
       BASTION_TEST_PASSWORD:
         required: true
@@ -98,6 +98,36 @@ jobs:
           ${{ secrets.CLOUDS_YAML }}
           EOF
 
+      - name: Append MoTD if type Deployment
+        if: ${{ inputs.deployment_type == 'Deployment' }}
+        run: |
+            echo "cat <<EOF | sudo tee /etc/motd
+
+            Welcome to the Kayobe Lab!
+
+            Optionally, attach to a tmux session in case the connection drops:
+
+                tmux
+
+            To view the script that was used to deploy the seed in this instance:
+
+                < a-seed-from-nothing.sh
+
+            To view the instructions for deploying the control plane:
+
+                < a-universe-from-seed.sh
+
+            To see this directions again:
+
+                < /etc/motd
+
+            EOF" >> setup-user.sh
+
+      - name: Conditionally inject a-universe-from-seed.sh execution
+        if: ${{ inputs.au_from_seed == true }}
+        run: |
+          sed -i '/a-seed-from-nothing.out",/a \    "sudo -u lab /home/lab/a-universe-from-seed.sh | sudo -u lab tee -a /home/lab/a-universe-from-seed.out",' openstack-device.tf
+
       - name: Generate terraform.tfvars
         run: |
           cat << EOF > terraform.tfvars
@@ -131,7 +161,6 @@ jobs:
         run: terraform plan
         env:
           OS_CLOUD: ${{ vars.OS_CLOUD }}
-
 
       - name: Terraform Apply
         id: tf_apply
@@ -215,10 +244,10 @@ jobs:
       #   with:
       #     name: ${{ inputs.deployment_type }}-terraform-artifacts
 
-      - name: Sleep to debug (cancel workflow to clean up)
-        if: ${{ inputs.deployment_type == 'Test' }}
-        run: |
-          sleep 7h
+      # - name: Sleep to debug (cancel workflow to clean up)
+      #   if: ${{ inputs.deployment_type == 'Test' }}
+      #   run: |
+      #     sleep 7h
 
       - name: Pause for debugging (cancel workflow to clean up)
         if: always() && ${{ inputs.debug_mode == true }} && ${{ inputs.deployment_type == 'Test' }}

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-AU_FROM_SEED="true"
+# AU_FROM_SEED="true"
 # OS_IMAGE="Rocky9"
-TAINT_REBUILD="true"
+# TAINT_REBUILD="true"
 
 echo "Starting AUFN test action with:"
 echo "AU_FROM_SEED: $AU_FROM_SEED"
@@ -88,6 +88,58 @@ EOF
 #  echo >> failed-labs.txt
 }
 
+function validate_universe_from_seed() {
+  echo && echo
+  echo "Validating Lab VMs setup..."
+  index=0
+  rm -f failed-labs.txt
+
+  while IFS= read -r line; do
+    ip=$(echo "$line" | awk '{print $3}')
+    name=$(echo "$line" | awk '{print $2}')
+    password=$(echo "$line" | awk '{print $5}')
+
+    echo && echo
+    echo "Validating $name at $ip..." && echo
+
+    sshpass -p "$password" ssh -o StrictHostKeyChecking=no\
+      "lab@${ip}" <<'EOF'
+    output=$(sudo virsh list --all)
+    echo "$output"
+    if ! echo "$output" | grep -q 'seed.*running'; then echo "'seed' not running"; fi
+    if ! echo "$output" | grep -q 'compute0.*running'; then echo "'compute0' not running"; fi
+    if ! echo "$output" | grep -q 'controller0.*running'; then echo "'controller0' not running"; fi
+
+    echo && echo
+    echo "$(ssh stack@192.168.33.5 'sudo docker ps')"
+    if ! ssh stack@192.168.33.5 'sudo docker ps' | grep -q bifrost_deploy; then echo "Bifrost container isn't deployed"; fi
+    if ! tail -n 1 a-universe-from-seed.out | grep -q 'demo1'; then echo "There was an error in running 'a-universe-from-seed'"; fi
+EOF
+
+set +e
+
+   sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
+      "lab@${ip}" <<'EOF'
+    output=$(sudo virsh list --all)
+    if ! echo "$output" | grep -q 'seed.*running'; then exit 1; fi
+    if ! echo "$output" | grep -q 'compute0.*running'; then exit 1; fi
+    if ! echo "$output" | grep -q 'controller0.*running'; then exit 1; fi
+
+    if ! ssh stack@192.168.33.5 'sudo docker ps' | grep -q bifrost_deploy; then exit 1; fi
+    if ! tail -n 1 a-universe-from-seed.out | grep -q 'demo1'; then exit 1; fi
+
+    exit 0
+EOF
+    taint_res=$?
+    echo "exit error is -> $taint_res"
+    if [ $taint_res -gt 0 ]; then echo "$index" >> failed-labs.txt ; fi
+    index=$((index + 1))
+    set -euo pipefail
+  done < ssh_list.txt
+#  echo >> failed-labs.txt
+}
+
+
 function taint_and_reapply() {
   if [ ! -s failed-labs.txt ]; then
     echo "No failed VMs detected"
@@ -107,10 +159,8 @@ function taint_and_reapply() {
 
 # function run_universe_from_seed() {
 #   if [[ "$AU_FROM_SEED" != "true" ]]; then return; fi
-#   echo "Launching a-universe-from-seed..."
-#   mapfile -t ssh_lines < ssh_list.txt
-#   for i in "${!ssh_lines[@]}"; do
-#     line="${ssh_lines[$i]}"
+#   echo "Running a-universe-from-seed..."
+#   while IFS= read -r line; do
 #     ip=$(echo "$line" | awk '{print $3}')
 #     name=$(echo "$line" | awk '{print $2}')
 #     password=$(echo "$line" | awk '{print $5}')
@@ -118,39 +168,38 @@ function taint_and_reapply() {
 #     sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
 #       "lab@${ip}" \
 #       "tmux new-session -d -s aus-run './a-universe-from-seed.sh'"
-#   done
+#   done < ssh_list.txt
 # }
 
-function run_universe_from_seed() {
-  if [[ "$AU_FROM_SEED" != "true" ]]; then return; fi
-  echo "Launching a-universe-from-seed..."
-  while IFS= read -r line; do
-    ip=$(echo "$line" | awk '{print $3}')
-    name=$(echo "$line" | awk '{print $2}')
-    password=$(echo "$line" | awk '{print $5}')
 
-    sshpass -p "$password" ssh -o StrictHostKeyChecking=no \
-      "lab@${ip}" \
-      "tmux new-session -d -s aus-run './a-universe-from-seed.sh'"
-  done < ssh_list.txt
-}
 
 # === RUN STEPS ===
 sleep 90 # Wait for VMs to be ready
 
 check_lab_vm_connections
-validate_lab_vms
 
+if [[ "$AU_FROM_SEED" = "false" ]]; then
+  validate_lab_vms
+else
+  validate_universe_from_seed
+fi 
 
 if [[ "$TAINT_REBUILD" = "true" && ! -s failed-labs.txt ]]; then
   taint_and_reapply
+  
   terraform output -json > tf-outputs.json
   terraform output -raw labs > ssh_list.txt
-  validate_lab_vms
+  sed -i 's/"//g' ssh_list.txt
+  echo >> ssh_list.txt
+
+  if [[ "$AU_FROM_SEED" = "false" ]]; then
+    validate_lab_vms
+  else
+    validate_universe_from_seed
+  fi
+
 else
   echo "Tainting and rebuilding is disabled, skipping..."
 fi
-
-run_universe_from_seed
 
 echo "AUFN Test completed successfully!"
