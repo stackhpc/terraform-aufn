@@ -158,6 +158,23 @@ fi
 export TENKS_CONFIG_PATH=~/deployment/src/kayobe-config/tenks.yml
 ~/deployment/src/kayobe/dev/tenks-deploy-overcloud.sh ~/deployment/src/tenks
 
+if [[ -f ~/deployment/src/kayobe/dev/tenks-network-reboot-patch.sh ]]; then
+    echo "Setting up Tenks network persistence..."
+
+    # Make sure unit service and script are executable 
+    chmod +x ~/deployment/src/kayobe-config/tenks-network-on-boot.service
+    chmod +x ~/deployment/src/kayobe-config/tenks-network-setup
+
+    # Move Service and Script to correct directory
+    sudo mv ~/deployment/src/kayobe-config/tenks-network-on-boot.service /etc/systemd/system/
+    sudo mv ~/deployment/src/kayobe-config/tenks-network-setup /bin/
+
+    # Enable Service
+    sudo systemctl enable tenks-network-on-boot.service
+else
+    echo "This version of Kayobe doesn't support Tenks network persistance."
+fi
+
 # Duration
 duration=$SECONDS
 echo "[INFO] $(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."
