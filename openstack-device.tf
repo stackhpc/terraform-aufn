@@ -3,31 +3,49 @@ resource "openstack_compute_keypair_v2" "ufn_lab_key" {
   public_key = tls_private_key.default.public_key_openssh
 }
 
+data "openstack_networking_network_v2" "lab_network" {
+  name = var.lab_net_ipv4
+}
+
+data "openstack_networking_secgroup_v2" "default_secgroup" {
+  name = "default"
+}
+
+resource "openstack_networking_port_v2" "bastion_port" {
+  name           = format("%s-bastion", var.lab_prefix)
+  admin_state_up = true
+
+  network_id = data.openstack_networking_network_v2.lab_network.id
+
+  security_group_ids = [
+    data.openstack_networking_secgroup_v2.default_secgroup.id
+  ]
+}
+
 resource "openstack_compute_instance_v2" "bastion" {
   count = var.create_bastion ? 1 : 0
   name            = "${var.lab_prefix}-bastion"
   image_name      = var.image_name
   flavor_name     = var.bastion_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
-  security_groups = ["default"]
   network {
-    name = var.lab_net_ipv4
+    port = openstack_networking_port_v2.bastion_port.id
   }
   timeouts {
     create = "30m"
   }
 }
 
-resource "openstack_compute_floatingip_associate_v2" "bastion" {
+resource "openstack_networking_floatingip_associate_v2" "bastion" {
   count = var.create_bastion ? 1 : 0
   floating_ip = var.bastion_floating_ip
-  instance_id = openstack_compute_instance_v2.bastion[0].id
+  port_id = openstack_networking_port_v2.bastion_port.id
 }
 
 resource "null_resource" "bastion" {
   count = var.create_bastion ? 1 : 0
   connection {
-    host        = openstack_compute_floatingip_associate_v2.bastion[0].floating_ip
+    host        = openstack_networking_floatingip_associate_v2.bastion[0].floating_ip
     user        = var.image_user
     private_key = tls_private_key.default.private_key_pem
     agent       = false
@@ -50,12 +68,22 @@ resource "null_resource" "bastion" {
   }
 }
 
+resource "openstack_networking_port_v2" "registry_port" {
+  name           = format("%s-registry", var.lab_prefix)
+  admin_state_up = "true"
+
+  network_id = data.openstack_networking_network_v2.lab_network.id
+
+  security_group_ids = [
+    data.openstack_networking_secgroup_v2.default_secgroup.id
+  ]
+}
+
 # Boot instance with volume attached for Docker Registry
 resource "openstack_compute_instance_v2" "registry" {
   name            = "${var.lab_prefix}-registry"
   flavor_name     = var.registry_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
-  security_groups = ["default"]
 
   block_device {
     uuid                  = var.image_id
@@ -67,31 +95,31 @@ resource "openstack_compute_instance_v2" "registry" {
   }
 
   network {
-    name = var.lab_net_ipv4
+    port = openstack_networking_port_v2.registry_port.id
   }
 }
 
-resource "openstack_compute_floatingip_v2" "registry" {
+resource "openstack_networking_floatingip_v2" "registry" {
   count = var.allocate_floating_ips ? 1 : 0
   pool = var.floating_ip_external_net
 }
 
-resource "openstack_compute_floatingip_associate_v2" "registry" {
+resource "openstack_networking_floatingip_associate_v2" "registry" {
   count = var.allocate_floating_ips ? 1 : 0
-  floating_ip = openstack_compute_floatingip_v2.registry[count.index].address
-  instance_id = openstack_compute_instance_v2.registry.id
+  floating_ip = openstack_networking_floatingip_v2.registry[count.index].address
+  port_id = openstack_networking_port_v2.registry_port.id
 }
 
 resource "null_resource" "registry" {
   connection {
     bastion_user        = var.create_bastion ? var.image_user : null
     bastion_private_key = var.create_bastion ? tls_private_key.default.private_key_pem : null
-    bastion_host        = var.create_bastion ? openstack_compute_floatingip_associate_v2.bastion[0].floating_ip : null
+    bastion_host        = var.create_bastion ? openstack_networking_floatingip_associate_v2.bastion[0].floating_ip : null
     user                = var.image_user
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = var.allocate_floating_ips ? openstack_compute_floatingip_associate_v2.registry[0].floating_ip : openstack_compute_instance_v2.registry.network.0.fixed_ip_v4
+    host                = var.allocate_floating_ips ? openstack_networking_floatingip_associate_v2.registry[0].floating_ip : openstack_compute_instance_v2.registry.network.0.fixed_ip_v4
   }
 
   triggers = {
@@ -110,51 +138,32 @@ resource "null_resource" "registry" {
   }
 }
 
-resource "openstack_compute_secgroup_v2" "AUFN" {
+resource "openstack_networking_secgroup_v2" "AUFN" {
   name        = "${var.lab_prefix}-lab-rules"
   description = "Access rules for AUFN lab deployment"
+}
 
-  rule {
-    from_port   = 22
-    to_port     = 22
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+locals {
+  aufn_tcp_ports = {
+    ssh          = 22
+    http         = 80
+    grafana      = 3000
+    opensearch   = 5601
+    prometheus   = 9091
+    alertmanager = 9093
   }
+}
 
-  rule {
-    from_port   = 80
-    to_port     = 80
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
+resource "openstack_networking_secgroup_rule_v2" "aufn_rules" {
+  for_each = local.aufn_tcp_ports
 
-  rule {
-    from_port   = 3000
-    to_port     = 3000
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-
-  rule {
-    from_port   = 5601
-    to_port     = 5601
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-
-  rule {
-    from_port   = 9091
-    to_port     = 9091
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-
-  rule {
-    from_port   = 9093
-    to_port     = 9093
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = each.value
+  port_range_max    = each.value
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.AUFN.id
 }
 
 data "openstack_dns_zone_v2" "lab_zone" {
@@ -171,6 +180,19 @@ resource "openstack_dns_recordset_v2" "lab_dns" {
   records     = [openstack_compute_instance_v2.lab[count.index].network[0].fixed_ip_v4]
 }
 
+resource "openstack_networking_port_v2" "lab_port" {
+  count          = var.lab_count
+  name           = format("%s-lab-%02d", var.lab_prefix, count.index)
+  admin_state_up = true
+
+  network_id = data.openstack_networking_network_v2.lab_network.id
+
+  security_group_ids = [
+    data.openstack_networking_secgroup_v2.default_secgroup.id,
+    openstack_networking_secgroup_v2.AUFN.id
+  ]
+}
+
 resource "openstack_compute_instance_v2" "lab" {
 
   count           = var.lab_count
@@ -178,7 +200,6 @@ resource "openstack_compute_instance_v2" "lab" {
   image_name      = var.image_name
   flavor_name     = var.lab_flavor
   key_pair        = openstack_compute_keypair_v2.ufn_lab_key.name
-  security_groups = ["default", openstack_compute_secgroup_v2.AUFN.name ]
 
   dynamic "block_device" {
     for_each = var.boot_labs_from_volume ? [1] : []
@@ -193,7 +214,7 @@ resource "openstack_compute_instance_v2" "lab" {
   }
 
   network {
-    name = var.lab_net_ipv4
+    port = openstack_networking_port_v2.lab_port[count.index].id
   }
 
   timeouts {
@@ -203,16 +224,16 @@ resource "openstack_compute_instance_v2" "lab" {
   depends_on = [openstack_compute_keypair_v2.ufn_lab_key, null_resource.registry]
 }
 
-resource "openstack_compute_floatingip_v2" "lab" {
+resource "openstack_networking_floatingip_v2" "lab" {
   count = var.allocate_floating_ips ? var.lab_count : 0
   pool = var.floating_ip_external_net
 }
 
-resource "openstack_compute_floatingip_associate_v2" "lab" {
+resource "openstack_networking_floatingip_associate_v2" "lab" {
   count = var.allocate_floating_ips ? var.lab_count : 0
 
-  floating_ip = openstack_compute_floatingip_v2.lab[count.index].address
-  instance_id = openstack_compute_instance_v2.lab[count.index].id
+  floating_ip = openstack_networking_floatingip_v2.lab[count.index].address
+  port_id = openstack_networking_port_v2.lab_port[count.index].id
 }
 
 resource "null_resource" "lab" {
@@ -221,12 +242,12 @@ resource "null_resource" "lab" {
   connection {
     bastion_user        = var.create_bastion ? var.image_user : null
     bastion_private_key = var.create_bastion ? tls_private_key.default.private_key_pem : null
-    bastion_host        = var.create_bastion ? openstack_compute_floatingip_associate_v2.bastion[0].floating_ip : null
+    bastion_host        = var.create_bastion ? openstack_networking_floatingip_associate_v2.bastion[0].floating_ip : null
     user                = var.image_user
     private_key         = tls_private_key.default.private_key_pem
     agent               = false
     timeout             = "300s"
-    host                = var.allocate_floating_ips ? openstack_compute_floatingip_associate_v2.lab[count.index].floating_ip : openstack_compute_instance_v2.lab[count.index].network.0.fixed_ip_v4
+    host                = var.allocate_floating_ips ? openstack_networking_floatingip_associate_v2.lab[count.index].floating_ip : openstack_compute_instance_v2.lab[count.index].network.0.fixed_ip_v4
   }
 
   triggers = {
