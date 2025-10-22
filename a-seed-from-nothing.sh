@@ -101,7 +101,7 @@ cd $HOME
 git clone https://github.com/stackhpc/beokay.git -b master
 
 # Use Beokay to bootstrap your control host.
-[[ -d deployment ]] || beokay/beokay.py create --base-path ~/deployment --kayobe-repo https://opendev.org/openstack/kayobe.git --kayobe-branch stable/2024.1 --kayobe-config-repo https://github.com/stackhpc/a-universe-from-nothing.git --kayobe-config-branch stable/2024.1
+[[ -d deployment ]] || beokay/beokay.py create --base-path ~/deployment --kayobe-repo https://github.com/stackhpc/kayobe.git --kayobe-branch stackhpc/2024.1 --kayobe-config-repo https://github.com/stackhpc/a-universe-from-nothing.git --kayobe-config-branch stable/2024.1
 
 # Bump the provisioning time - it can be lengthy on virtualised storage
 sed -i.bak 's%^[# ]*wait_active_timeout:.*%    wait_active_timeout: 5000%' ~/deployment/src/kayobe/ansible/overcloud-provision.yml
@@ -157,6 +157,23 @@ fi
 # Run TENKS
 export TENKS_CONFIG_PATH=~/deployment/src/kayobe-config/tenks.yml
 ~/deployment/src/kayobe/dev/tenks-deploy-overcloud.sh ~/deployment/src/tenks
+
+if [[ -f ~/deployment/src/kayobe/dev/tenks-network-reboot-patch.sh ]]; then
+    echo "Setting up Tenks network persistence..."
+
+    # Make sure unit service and script are executable 
+    chmod +x ~/deployment/src/kayobe-config/tenks-network-on-boot.service
+    chmod +x ~/deployment/src/kayobe-config/tenks-network-setup
+
+    # Move Service and Script to correct directory
+    sudo mv ~/deployment/src/kayobe-config/tenks-network-on-boot.service /etc/systemd/system/
+    sudo mv ~/deployment/src/kayobe-config/tenks-network-setup /bin/
+
+    # Enable Service
+    sudo systemctl enable tenks-network-on-boot.service
+else
+    echo "This version of Kayobe doesn't support Tenks network persistance."
+fi
 
 # Duration
 duration=$SECONDS
