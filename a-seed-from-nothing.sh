@@ -39,17 +39,10 @@ net.ipv6.conf.default.disable_ipv6 = 1
 EOF
 sudo sysctl --load /etc/sysctl.d/70-ipv6.conf
 
-# CentOS Stream 8 requires network-scripts.  Rocky Linux 9 and onwards use NetworkManager.
+# Rocky Linux 9 and onwards use NetworkManager.
 if type dnf; then
-    case $(grep -o "[89]\.[0-9]" /etc/redhat-release) in
-      "8.*")
-        sudo dnf install -y network-scripts
-        sudo rm -f /etc/sysconfig/network-scripts/ifcfg-ens3*
-        sudo systemctl is-active NetworkManager && (sudo systemctl disable NetworkManager; sudo systemctl stop NetworkManager)
-        sudo systemctl is-active network || (sudo systemctl enable network; sudo pkill dhclient; sudo systemctl start network)
-        ;;
-      "9.*")
-        # No network-scripts for RL9
+    case $(grep -o "[0-9]*\.[0-9]*" /etc/redhat-release) in
+      "9.*" | "10.*")
         sudo systemctl is-active NetworkManager || (sudo systemctl enable NetworkManager; sudo systemctl start NetworkManager)
         ;;
       "*")
@@ -101,7 +94,7 @@ cd $HOME
 git clone https://github.com/stackhpc/beokay.git -b master
 
 # Use Beokay to bootstrap your control host.
-[[ -d deployment ]] || beokay/beokay.py create --base-path ~/deployment --kayobe-repo https://opendev.org/openstack/kayobe.git --kayobe-branch unmaintained/2024.1 --kayobe-config-repo https://github.com/stackhpc/a-universe-from-nothing.git --kayobe-config-branch stable/2024.1
+[[ -d deployment ]] || beokay/beokay.py create --base-path ~/deployment --kayobe-repo https://opendev.org/openstack/kayobe.git --kayobe-branch stable/2025.1 --kayobe-config-repo https://github.com/stackhpc/a-universe-from-nothing.git --kayobe-config-branch stable/2025.1
 
 # Bump the provisioning time - it can be lengthy on virtualised storage
 sed -i.bak 's%^[# ]*wait_active_timeout:.*%    wait_active_timeout: 5000%' ~/deployment/src/kayobe/ansible/overcloud-provision.yml

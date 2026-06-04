@@ -1,7 +1,7 @@
 lab_count     = 12
 lab_net_ipv4  = "stackhpc-ipv4-aufn"
-image_id      = "137f31eb-454b-4835-84c5-ad4cc3e22110"
-image_name    = "Rocky9"
+image_id      = "44edb785-4c67-4516-ac6d-5948bea8ed06"
+image_name    = "Rocky10"
 lab_flavor    = "aufn.v1.large"
 registry_flavor    = "general.v1.medium"
 boot_labs_from_volume = true

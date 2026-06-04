@@ -39,11 +39,13 @@ fi
 
 registry=quay.io
 acct=openstack.kolla
+
 if type apt; then
-    tag=${1:-2024.1-ubuntu-jammy}
+    tag=${1:-2025.1-ubuntu-jammy}
 else
-    tag=${1:-2024.1-rocky-9}
+    tag=${1:-2025.1-rocky-10}
 fi
+
 images="barbican-api
 barbican-keystone-listener
 barbican-worker
@@ -142,9 +144,17 @@ prometheus-node-exporter
 prometheus-openstack-exporter
 prometheus-v2-server
 rabbitmq
-rabbitmq-4-1
+rabbitmq-4-1"
+
+if type apt; then
+images="${images}
 redis
 redis-sentinel"
+else
+images="${images}
+valkey-server
+valkey-sentinel"
+fi
 
 for image in $images; do
     echo "Processing $acct/$image:$tag..."
