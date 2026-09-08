@@ -2,30 +2,6 @@
 
 set -e
 
-# Set OS major version
-if [[ -e /etc/os-release ]]
-then
-    . /etc/os-release
-    if [[ -z "$VERSION_ID" ]]
-    then
-	echo "Linux version ID couldn't be found from /etc/os-release"
-	exit -1
-    fi
-    case "$ID" in
-	"rocky"|"centos")
-	    RLVER=${VERSION_ID%%.*}
-	    echo "Found distro $ID version $RLVER"
-	    ;;
-	"ubuntu")
-	    ;;
-	*)
-	    echo "Linux distro $ID not recognised"
-	    exit -1
-	    ;;
-    esac
-fi
-
-
 # Reset SECONDS
 SECONDS=0
 
@@ -65,9 +41,9 @@ registry=quay.io
 acct=openstack.kolla
 
 if type apt 2>/dev/null; then
-    tag=${1:-2025.1-ubuntu-jammy}
+    tag=${1:-2026.1-ubuntu-jammy}
 else
-    tag=${1:-2025.1-rocky-$RLVER}
+    tag=${1:-2026.1-rocky-10}
 fi
 
 images="barbican-api
@@ -101,10 +77,8 @@ heat-api
 heat-api-cfn
 heat-engine
 horizon
-influxdb
 ironic-api
 ironic-conductor
-ironic-inspector
 ironic-neutron-agent
 ironic-prometheus-exporter
 ironic-pxe
@@ -114,14 +88,12 @@ keystone-fernet
 keystone-ssh
 kolla-toolbox
 letsencrypt-lego
-letsencrypt-webserver
 magnum-api
 magnum-conductor
 manila-api
 manila-data
 manila-scheduler
 manila-share
-mariadb-clustercheck
 mariadb-server
 memcached
 neutron-bgp-dragent
@@ -165,8 +137,7 @@ prometheus-mysqld-exporter
 prometheus-node-exporter
 prometheus-openstack-exporter
 prometheus-server
-rabbitmq
-rabbitmq-4-1"
+rabbitmq"
 
 if type apt 2>/dev/null; then
 images="${images}

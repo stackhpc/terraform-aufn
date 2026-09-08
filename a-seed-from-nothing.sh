@@ -94,7 +94,7 @@ cd $HOME
 [[ -d beokay ]] || git clone https://github.com/stackhpc/beokay.git -b master
 
 # Use Beokay to bootstrap your control host.
-[[ -d deployment ]] || beokay/beokay.py create --base-path ~/deployment --kayobe-repo https://opendev.org/openstack/kayobe.git --kayobe-branch stable/2025.1 --kayobe-config-repo https://github.com/stackhpc/a-universe-from-nothing.git --kayobe-config-branch stable/2025.1
+[[ -d deployment ]] || beokay/beokay.py create --base-path ~/deployment --kayobe-repo https://opendev.org/openstack/kayobe.git --kayobe-branch stable/2026.1 --kayobe-config-repo https://github.com/stackhpc/a-universe-from-nothing.git --kayobe-config-branch pulp-on-seed-2026.1
 
 # Bump the provisioning time - it can be lengthy on virtualised storage
 sed -i.bak 's%^[# ]*wait_active_timeout:.*%    wait_active_timeout: 5000%' ~/deployment/src/kayobe/ansible/overcloud-provision.yml
