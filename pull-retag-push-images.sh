@@ -2,10 +2,34 @@
 
 set -e
 
+# Set OS major version
+if [[ -e /etc/os-release ]]
+then
+    . /etc/os-release
+    if [[ -z "$VERSION_ID" ]]
+    then
+	echo "Linux version ID couldn't be found from /etc/os-release"
+	exit -1
+    fi
+    case "$ID" in
+	"rocky"|"centos")
+	    RLVER=${VERSION_ID%%.*}
+	    echo "Found distro $ID version $RLVER"
+	    ;;
+	"ubuntu")
+	    ;;
+	*)
+	    echo "Linux distro $ID not recognised"
+	    exit -1
+	    ;;
+    esac
+fi
+
+
 # Reset SECONDS
 SECONDS=0
 
-if type apt; then
+if type apt 2>/dev/null; then
     # Install and start docker
     [[ -f /usr/share/keyrings/docker-archive-keyring.gpg ]] || (curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg)
     echo \
@@ -40,10 +64,10 @@ fi
 registry=quay.io
 acct=openstack.kolla
 
-if type apt; then
+if type apt 2>/dev/null; then
     tag=${1:-2025.1-ubuntu-jammy}
 else
-    tag=${1:-2025.1-rocky-10}
+    tag=${1:-2025.1-rocky-$RLVER}
 fi
 
 images="barbican-api
@@ -137,16 +161,14 @@ prometheus-cadvisor
 prometheus-elasticsearch-exporter
 prometheus-libvirt-exporter
 prometheus-memcached-exporter
-prometheus-msteams
-prometheus-mtail
 prometheus-mysqld-exporter
 prometheus-node-exporter
 prometheus-openstack-exporter
-prometheus-v2-server
+prometheus-server
 rabbitmq
 rabbitmq-4-1"
 
-if type apt; then
+if type apt 2>/dev/null; then
 images="${images}
 redis
 redis-sentinel"

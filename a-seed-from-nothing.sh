@@ -91,7 +91,7 @@ fi
 
 # Clone Beokay.
 cd $HOME
-git clone https://github.com/stackhpc/beokay.git -b master
+[[ -d beokay ]] || git clone https://github.com/stackhpc/beokay.git -b master
 
 # Use Beokay to bootstrap your control host.
 [[ -d deployment ]] || beokay/beokay.py create --base-path ~/deployment --kayobe-repo https://opendev.org/openstack/kayobe.git --kayobe-branch stable/2025.1 --kayobe-config-repo https://github.com/stackhpc/a-universe-from-nothing.git --kayobe-config-branch stable/2025.1
@@ -105,7 +105,7 @@ cd ~/deployment/src/
 cd
 
 # Set default registry name to the one we just created
-sed -i.bak 's/^docker_registry:.*/docker_registry: '$registry_ip':4000/' ~/deployment/src/kayobe-config/etc/kayobe/docker.yml
+sed -i.bak 's/^docker_registry:.*/docker_registry: '$registry_ip':4000/' ~/deployment/src/kayobe-config/etc/kayobe/container-engine.yml
 
 # Configure host networking (bridge, routes & firewall)
 ~/deployment/src/kayobe-config/configure-local-networking.sh
