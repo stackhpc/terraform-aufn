@@ -125,6 +125,7 @@ openvswitch-vswitchd
 ovn-controller
 ovn-nb-db-server
 ovn-northd
+ovn-sb-db-relay
 ovn-sb-db-server
 placement-api
 prometheus-alertmanager
@@ -136,7 +137,9 @@ prometheus-memcached-exporter
 prometheus-mysqld-exporter
 prometheus-node-exporter
 prometheus-openstack-exporter
+prometheus-openstack-network-exporter
 prometheus-server
+proxysql
 rabbitmq"
 
 if type apt 2>/dev/null; then
