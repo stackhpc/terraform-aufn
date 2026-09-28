@@ -77,6 +77,7 @@ heat-api
 heat-api-cfn
 heat-engine
 horizon
+httpd
 ironic-api
 ironic-conductor
 ironic-neutron-agent
