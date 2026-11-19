@@ -140,12 +140,7 @@ export KAYOBE_VENV_PATH=~/deployment/venvs/kayobe
 ~/deployment/src/kayobe/dev/seed-hypervisor-deploy.sh
 
 # Deploy a seed VM.
-# NOTE: This should work the first time because the packet configuration uses a
-# custom docker registry.  However, there are sometimes issues with Docker starting up on the seed (FIXME)
-if ! ~/deployment/src/kayobe/dev/seed-deploy.sh; then
-    # Deploy a seed VM. Should work this time.
-    ~/deployment/src/kayobe/dev/seed-deploy.sh
-fi
+/home/lab/seed-deploy.sh
 
 # Run TENKS
 export TENKS_CONFIG_PATH=~/deployment/src/kayobe-config/tenks.yml
