@@ -111,7 +111,7 @@ sed -i.bak 's/^docker_registry:.*/docker_registry: '$registry_ip':4000/' ~/deplo
 ~/deployment/src/kayobe-config/configure-local-networking.sh
 
 # Enable OVN flags
-if $ENABLE_OVN
+if $ENABLE_OVN && [ ! -f ~/.ovn_enabled ]
 then
     cat <<EOF | sudo tee -a ~/deployment/src/kayobe-config/etc/kayobe/bifrost.yml
 kolla_bifrost_extra_kernel_options:
@@ -130,6 +130,7 @@ kolla_neutron_ml2_tenant_network_types:
   - vlan
   - flat
 EOF
+    sudo touch ~/.ovn_enabled
 fi
 
 # Set Environment variables for Kayobe dev scripts
@@ -140,12 +141,7 @@ export KAYOBE_VENV_PATH=~/deployment/venvs/kayobe
 ~/deployment/src/kayobe/dev/seed-hypervisor-deploy.sh
 
 # Deploy a seed VM.
-# NOTE: This should work the first time because the packet configuration uses a
-# custom docker registry.  However, there are sometimes issues with Docker starting up on the seed (FIXME)
-if ! ~/deployment/src/kayobe/dev/seed-deploy.sh; then
-    # Deploy a seed VM. Should work this time.
-    ~/deployment/src/kayobe/dev/seed-deploy.sh
-fi
+/home/lab/seed-deploy.sh
 
 # Run TENKS
 export TENKS_CONFIG_PATH=~/deployment/src/kayobe-config/tenks.yml

@@ -3,7 +3,7 @@
 sudo groupadd wheel
 sudo useradd -m -G wheel -s /bin/bash lab
 
-cat <<EOF | sudo tee -a /etc/ssh/sshd_config
+cat <<EOF | sudo tee /etc/ssh/sshd_config.d/60-lab-user.conf
 
 Match user lab
   PasswordAuthentication yes
@@ -12,7 +12,7 @@ EOF
 
 sudo systemctl restart sshd
 
-cat <<EOF | sudo tee -a /etc/sudoers.d/91-wheel-group
+cat <<EOF | sudo tee /etc/sudoers.d/91-wheel-group
 
 %wheel  ALL=(ALL)       NOPASSWD: ALL
 

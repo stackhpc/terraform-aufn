@@ -270,10 +270,16 @@ resource "null_resource" "lab" {
     destination = "/tmp/a-universe-from-seed.sh"
   }
 
+  provisioner "file" {
+    source      = "seed-deploy.sh"
+    destination = "/tmp/seed-deploy.sh"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "sudo install /tmp/a-seed-from-nothing.sh /home/lab",
       "sudo install /tmp/a-universe-from-seed.sh /home/lab",
+      "sudo install /tmp/seed-deploy.sh /home/lab",
       "sudo usermod -p `echo ${self.triggers.host_id} | openssl passwd -1 -stdin` lab",
       "sudo -u lab /home/lab/a-seed-from-nothing.sh ${self.triggers.registry_ip} | sudo -u lab tee -a /home/lab/a-seed-from-nothing.out",
     ]
